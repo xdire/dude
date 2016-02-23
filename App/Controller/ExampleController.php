@@ -7,10 +7,11 @@
 
 namespace App\Controller;
 
+use Core\Controller;
 use Core\Server\Request;
 use Core\Server\Response;
 
-class ExampleController
+class ExampleController extends Controller
 {
 
     public function test(){
