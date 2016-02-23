@@ -10,6 +10,21 @@ PHP micro-framework (5.5+ / 7+)
 4. Point Virtual Host root to `/AppFolder/public`
 5. Define a MOD_REWRITE rules for Apache or LOCATION for nginx to point at `/AppFolder/public/index.php`
 
+#### Apache
+```
+<Directory "/AppFolder">
+    AllowOverride None
+    Require all granted
+    <IfModule mod_rewrite.c>
+      RewriteEngine On
+      RewriteBase /
+      RewriteRule ^index\.php$ - [L]
+      RewriteCond %{REQUEST_FILENAME} !-f
+      RewriteCond %{REQUEST_FILENAME} !-d
+      RewriteRule . /index.php
+    </IfModule>
+</Directory>
+```
 ## After installation
 #### Simple way
 Define some route in `/AppFolder/App/route.php`
