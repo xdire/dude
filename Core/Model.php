@@ -12,7 +12,7 @@ abstract class Model {
 
     protected $DB;
 
-    function __construct($withParameters = null){
+    function __construct(){
 
         $this->DB = new DB();
 
