@@ -1,0 +1,19 @@
+{
+  "name": "xdire/dude!",
+  "description": "Friendly framework. Duuuudeeee!",
+  "license": "MIT",
+  "keywords": ["dude"],
+  "authors": [
+    {
+      "name": "Anton Repin",
+      "email": "ar@xdire.io"
+    }
+  ],
+  "require": {},
+  "autoload": {
+    "psr-4": {
+      "Core\\": "Core",
+      "App\\": "App"
+    }
+  }
+}
