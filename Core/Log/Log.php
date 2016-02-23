@@ -9,18 +9,18 @@
 namespace Core\Log;
 use Core\Core;
 
-class Log extends Core{
+class Log extends Core {
 
     private static $logBuffer=array();
     private static $logStart=true;
-
+    private static $logError=false;
+    private static $logErrorMsg="";
     public static $disableOutput = true;
 
     private function __construct(){}
 
-    public static function append($error,$time=true){
+    public static function append($error,$time=true) {
 
-        date_default_timezone_set("America/New_York");
         if(self::$logStart){
             self::$logStart = false;
             array_push(self::$logBuffer,"-------------------- LOG STARTED --------------------- \r\n");
@@ -63,24 +63,35 @@ class Log extends Core{
 
     }
 
-    private static function writeTodayLog($message){
+    private static function writeTodayLog($message) {
 
-        $file=self::callTodayLog();
-        if(fwrite($file,$message) === false){
-
+        if($file=self::callTodayLog()) {
+            if (fwrite($file, $message) === false) {
+                self::$logError = true;
+                self::$logErrorMsg = "Log file cannot be written.";
+                return false;
+            }
+            return true;
+        } else {
+            self::$logError = true;
+            self::$logErrorMsg = "Log file cannot be open.";
         }
-
+        return false;
     }
 
-    private static function callTodayLog(){
+    private static function callTodayLog() {
 
         $date = date('Y-m-d');
-        $filepath = O_ROOTPATH.'/'.self::$config['path_log'].'/'.$date.'.log';
-        if(@$filepointer = fopen($filepath,"a+")){
-            return $filepointer;
-        } else {
-            return false;
+        if(isset(self::$config)) {
+            //$filepath = O_ROOTPATH . '/' . self::$config['path_log'] . '/' . $date . '.log';
+            $filepath = O_ROOTPATH . '/Data/Log/' . $date . '.log';
+            if (@$filepointer = fopen($filepath, "a+")) {
+                return $filepointer;
+            } else {
+                return null;
+            }
         }
+        return null;
 
     }
 

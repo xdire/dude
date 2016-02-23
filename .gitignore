@@ -6,3 +6,4 @@ App/config_prod.php
 App/Controller/Tests
 App/Model/Tests
 App/route.php
+Data/Log/

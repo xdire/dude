@@ -26,15 +26,17 @@ class DB {
     /* ------------------------------------------------------------------------------------------------------*/
     /** @var array|null */
     private $config=null;
-    /** @var array|null  */
+    /** @var array|null */
     private $options=null;
 
-    /** @var \PDO  */
-    private $dbinstance=null;
+    /** @var \PDO */
+    protected $dbinstance=null;
 
     /** @var int|null  */
     public $lastInsertId=null;
-    /** @var int|null */
+    /** @var bool */
+    public $error=false;
+    /** @var string|null */
     public $errorCode=0;
     /** @var string|null */
     public $errorInfo=null;
@@ -47,6 +49,16 @@ class DB {
     /** @var bool */
     private $isTransaction;
 
+    /**
+     * DB constructor.
+     * @param null $conf_instance
+     *
+     * - Put there Database instance from config file, for example: "mysql_connection"
+     *
+     * @param null $options
+     *
+     * @throws \Exception
+     */
     function __construct($conf_instance=null,$options=null){
 
         if(is_array($options)){
@@ -56,7 +68,10 @@ class DB {
 
             # Apply parameters from config
             $this->config = App::getConfig('mysql_connection');
-            $this->constructDBOBJ();
+            if(!empty($this->config))
+                $this->constructDBOBJ();
+            else
+                throw new \Exception("Database driver can't be instantiated. Failed to load configuration.");
 
         } else {
 
@@ -100,6 +115,87 @@ class DB {
         }
     }
 
+    protected function resetError() {
+        $this->error = false;
+        $this->errorCode = 0;
+        $this->errorInfo = "";
+    }
+
+    protected function setError($code,$message) {
+        $this->error = true;
+        $this->errorCode = $code;
+        $this->errorInfo = $message;
+    }
+    /* -------------------------------------------------------------------------------------------------------
+    |
+    |   EXTENDABLE
+    |
+    |
+    |
+    /* ------------------------------------------------------------------------------------------------------*/
+    /**
+     * @param string $statement
+     * @return null|\PDOStatement
+     */
+    protected function selectBegin($statement) {
+        $this->resetError();
+        if($this->dbinstance && $statement) {
+            try {
+
+                $query = $this->dbinstance->prepare($statement);
+                $result = null;
+
+                $result = $query->execute();
+                if($result) {
+                    return $query;
+                } else {
+                    $this->setError($query->errorCode(),$query->errorInfo());
+                }
+
+            } catch (\PDOException $e){
+                $this->errorInfo = $e->getMessage();
+                Log::append('Database query object encounter error: '.$e->getMessage());
+            }
+        }
+        return null;
+    }
+
+    /**
+     * @param $statement
+     * @return null|\PDOStatement
+     */
+    protected function writeBegin($statement) {
+        $this->resetError();
+        if($this->dbinstance && $statement) {
+
+            try {
+
+                $query = $this->dbinstance->prepare($statement);
+                $result = $query->execute();
+                if ($result)
+                    return $query;
+                else {
+                    $this->setError($query->errorCode(),$query->errorInfo());
+                }
+
+            } catch (\PDOException $e) {
+
+                $this->errorInfo = $e->getMessage();
+                $this->errorCode = $e->getCode();
+                $this->setError($this->dbinstance->errorCode(),$this->dbinstance->errorInfo());
+                Log::append('Database query object encounter error: ' . $e->getMessage() . ' Query string: ' . $statement);
+
+            }
+
+        }
+        return null;
+
+    }
+
+    protected function fetchRow(\PDOStatement $q){
+        if($row = $q->fetch(2)) return $row;
+        return null;
+    }
     /* -------------------------------------------------------------------------------------------------------
     |
     |   TRANSACTIONS
@@ -158,10 +254,11 @@ class DB {
      * @return array|null
      */
     public function select($statement=null,$params=null,$compressResult=false){
-
+        $this->resetError();
         if($this->dbinstance && $statement){
 
             try {
+
                 $query = $this->dbinstance->prepare($statement);
                 $result=null;
 
@@ -208,6 +305,7 @@ class DB {
                 }
             }
             catch (\PDOException $e){
+                $this->setError($e->getCode(),$e->getMessage());
                 $this->errorInfo = $e->getMessage();
                 Log::append('Database query object encounter error: '.$e->getMessage());
             }
@@ -233,7 +331,7 @@ class DB {
      * @return mixed|null
      */
     public function selectRow($statement=null,$params=null){
-
+        $this->resetError();
         if($this->dbinstance && $statement){
 
             try {
@@ -313,7 +411,7 @@ class DB {
      * @throws \Exception : Only if it in Transactional mode
      */
     private function insertExec($statement,$params){
-
+        $this->resetError();
         if($this->dbinstance && $statement){
 
             try {
@@ -351,29 +449,20 @@ class DB {
                     return true;
 
                 } else {
-                    $this->errorCode=$this->dbinstance->errorCode();
-                    $this->errorFullInfo=$this->dbinstance->errorInfo();
+                    $this->setError($query->errorCode(),$query->errorInfo());
                 }
             }
-            catch (\PDOException $e){
+            catch (\PDOException $e) {
 
-                $this->errorInfo = $e->getMessage();
-                $this->errorCode=$e->getCode();
+                $this->setError($e->getCode(),$e->getMessage());
                 Log::append('Database query object encounter error: '.$e->getMessage().' Query string: '.$statement);
-
-                // Transaction handler
-                if($this->isTransaction){
-                    $this->isTransaction = false;
-                    throw new \Exception('Database query object encounter error: '.$e->getMessage());
-                }
 
             }
 
         }
 
         return false;
+
     }
-
-
 
 }
