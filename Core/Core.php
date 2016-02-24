@@ -95,12 +95,9 @@ class Core {
         }
         // Run processes defined in process.php
         else {
-
+            if(!defined("SYSTEM_PROCESS_ID")) define("SYSTEM_PROCESS_ID",null);
             require(O_ROOTPATH . '/App/process.php');
-
         }
-
-
 
         if(session_status() === PHP_SESSION_ACTIVE){
             session_write_close();
@@ -125,6 +122,11 @@ class Core {
         self::urlToPath($_SERVER['REQUEST_URI']);
     }
 
+    /**
+     * Begin to parse incoming URI
+     * ------------------------------------------------------
+     * @param string $url
+     */
     private static function urlToPath($url) {
 
         self::$requestObject = new Request();
@@ -177,8 +179,9 @@ class Core {
 
     }
 
-    /** Router Dispatcher
-     *
+    /**
+     *  Router Dispatcher
+     *  ------------------------------------------------------
      *  @param string $method
      *  @param string $path
      *  @param null | callable $callback
@@ -389,6 +392,11 @@ class Core {
 
     }
 
+    /**
+     * Proceed with selected route
+     * ------------------------------------------------------
+     * @param RouterPathObject $route
+     */
     private static function doRoute(RouterPathObject $route){
 
         /*echo "<pre>";

@@ -16,7 +16,7 @@ class ExampleController extends Controller
 
     public function test(){
 
-        echo "Test task was finished.";
+        echo "Simple. Test task was finished.";
 
     }
 
