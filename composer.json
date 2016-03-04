@@ -1,8 +1,8 @@
 {
-  "name": "xdire/dude!",
+  "name": "xdire/dude",
   "description": "Friendly framework. Duuuudeeee!",
   "license": "MIT",
-  "keywords": ["dude"],
+  "keywords": ["dude","php"],
   "authors": [
     {
       "name": "Anton Repin",
@@ -13,7 +13,8 @@
   "autoload": {
     "psr-4": {
       "Core\\": "Core",
-      "App\\": "App"
+      "App\\": "App",
+      "Drivers\\":"Drivers"
     }
   }
 }

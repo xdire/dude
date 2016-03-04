@@ -11,24 +11,30 @@ use Core\User\User;
 
 class Request
 {
-
+    /** @var null  */
     private $remoteHost = null;
-
+    /** @var string  */
     private $path = null;
-
+    /** @var null  */
     private $pathLast = null;
-
+    /** @var array */
     private $headers = [];
-
+    /** @var array */
     private $parameters = [];
-
+    /** @var array  */
     private $queryParameters = [];
-
+    /** @var string|null  */
+    private $contentType = null;
+    /** @var int|null  */
+    private $contentLength = null;
+    /** @var string|null */
     private $postData = null;
-
+    /** @var string|null */
     private $authKey = null;
-
+    /** @var string|null */
     private $authUser = null;
+    /** @var string|null */
+    private $authAgent = null;
     /** @var int|null */
     private $apiVer = null;
     /** @var User|null */
@@ -49,24 +55,32 @@ class Request
         if($this->headers = getallheaders()) {
             $a = [];
             foreach($this->headers as $name=>$value) {
-                if($name == "x-request-sig") {
+                if($name == "AuthKey") {
                     $this->authKey = $value;
-                } elseif ($name == "User-Agent-Id") {
+                } elseif ($name == "AuthUser") {
                     $this->authUser = $value;
-                } elseif ($name == "User-Agent-Ver") {
+                } elseif ($name == "AuthAgent") {
+                    $this->authAgent = $value;
+                } elseif ($name == "UserAgentVer") {
                     $this->apiVer = $value;
+                } elseif ($name == "Content-Length"){
+                    $this->contentLength = intval($value);
+                } elseif ($name == "Content-Type"){
+                    $this->contentType = $value;
                 }
                 $a[strtolower($name)] = $value;
             }
             $this->headers = $a;
         }
 
-        if(isset($_POST)) {
-            $this->postData = $_POST;
-        }
-
         if(isset($_SERVER['REMOTE_ADDR'])) {
             $this->remoteHost = $_SERVER['REMOTE_ADDR'];
+        }
+
+        if($this->contentLength > 0) {
+            $p = fopen("php://input", "r");
+            $this->postData = stream_get_contents($p);
+            fclose($p);
         }
 
     }
@@ -207,6 +221,30 @@ class Request
     public function isAuthorized()
     {
         return $this->authorized;
+    }
+
+    /**
+     * @return null|string
+     */
+    public function getContentType()
+    {
+        return $this->contentType;
+    }
+
+    /**
+     * @return int|null
+     */
+    public function getContentLength()
+    {
+        return $this->contentLength;
+    }
+
+    /**
+     * @return null|string
+     */
+    public function getAuthAgent()
+    {
+        return $this->authAgent;
     }
 
     /**

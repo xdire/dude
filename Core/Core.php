@@ -48,6 +48,7 @@ class Core {
         'POST'=>2,'post'=>2,
         'GET'=>1,'get'=>1,
         'UPDATE'=>3,'update'=>3,
+        'PATCH'=>3,'patch'=>3,
         'PUT'=>5,'put'=>5,
         'DELETE'=>4,'delete'=>4
     );
@@ -107,19 +108,9 @@ class Core {
 
     protected static function initRouting() {
 
-        self::$routerMethod = (isset(self::$requestMethods[$_SERVER['REQUEST_METHOD']]))?self::$requestMethods[$_SERVER['REQUEST_METHOD']]:0;
-        if(self::$routerMethod > 2) {
-
-            $putdata = fopen("php://input", "r");
-            $postdata = stream_get_contents($putdata);
-            fclose($putdata);
-
-            $post = array();
-            parse_str($postdata, $post);
-            $_POST = array_merge($_POST, $post);
-
-        }
+        self::$routerMethod = (isset(self::$requestMethods[$_SERVER['REQUEST_METHOD']])) ? self::$requestMethods[$_SERVER['REQUEST_METHOD']] : 0;
         self::urlToPath($_SERVER['REQUEST_URI']);
+
     }
 
     /**

@@ -10,21 +10,48 @@ namespace Core\User;
 class User
 {
     /** @var int|null  */
-    private $id = null;
+    protected $id = null;
+    /** @var string */
+    protected $loginName="";
+    /** @var string */
+    protected $email="";
+
     /** @var string|null  */
-    private $name = null;
+    protected $firstName = null;
     /** @var string|null  */
-    private $firstName = null;
-    /** @var string|null  */
-    private $lastName = null;
+    protected $lastName = null;
     /** @var int|null  */
-    private $vendorId = null;
+    protected $vendorId = null;
     /** @var string|null  */
-    private $key = null;
+    protected $key = null;
     /** @var int */
-    private $level = 0;
+    protected $level = 0;
     /** @var bool */
-    private $authorized = false;
+    protected $authorized = false;
+
+    /** @var int */
+    protected $active=0;
+
+    /**
+     * @return bool
+     */
+    public function isEmpty() {
+        return (!isset($this->id)) ? true : false;
+    }
+
+    /**
+     * @return array
+     */
+    public function toArray() {
+        return ["id"=>$this->id,"login"=>$this->loginName,"email"=>$this->email,"firstName"=>$this->firstName,"lastName"=>$this->lastName,"level"=>$this->level,"active"=>$this->active==0?false:true];
+    }
+
+    /**
+     * @return string
+     */
+    public function toJson() {
+        return json_encode($this->toArray());
+    }
 
     /**
      * User constructor.
@@ -36,63 +63,65 @@ class User
     /**
      * @param $id
      */
-    function __setId($id) {
+    function setId($id) {
         $this->id = intval($id);
     }
 
     /**
-     * @param $stringName
+     * @param string $loginName
      */
-    function __setName($stringName) {
-        $this->name = $stringName;
+    public function setLoginName($loginName)
+    {
+        $this->loginName = $loginName;
+    }
+
+    /**
+     * @param string $email
+     */
+    public function setEmail($email)
+    {
+        $this->email = $email;
     }
 
     /**
      * @param $stringName
      */
-    function __setFirstName($stringName) {
+    function setFirstName($stringName) {
         $this->firstName = $stringName;
     }
 
     /**
      * @param $stringName
      */
-    function __setLastName($stringName) {
+    function setLastName($stringName) {
         $this->lastName = $stringName;
     }
 
     /**
      * @param $id
      */
-    function __setVendorId($id) {
+    function setVendorId($id) {
         $this->vendorId = $id;
     }
 
     /**
      * @param $stringKey
      */
-    function __setKey($stringKey) {
+    function setKey($stringKey) {
         $this->key = $stringKey;
-    }
-
-    /**
-     * @param $level
-     */
-    function __setLevel($level) {
-        $this->level = intval($level);
     }
 
     /**
      *  VOID
      */
-    function __setAuthorized() {
+    function setAuthorized() {
         $this->authorized = true;
     }
 
     /**
      *  VOID
      */
-    function __setUnAuthorized() {
+    function setUnAuthorized() {
         $this->authorized = false;
     }
 
@@ -102,14 +131,6 @@ class User
     public function getId()
     {
         return $this->id;
-    }
-
-    /**
-     * @return null|string
-     */
-    public function getName()
-    {
-        return $this->name;
     }
 
     /**
@@ -126,6 +147,22 @@ class User
     public function getLastName()
     {
         return $this->lastName;
+    }
+
+    /**
+     * @return string
+     */
+    public function getLoginName()
+    {
+        return $this->loginName;
+    }
+
+    /**
+     * @return string
+     */
+    public function getEmail()
+    {
+        return $this->email;
     }
 
     /**
@@ -150,6 +187,30 @@ class User
     public function getLevel()
     {
         return $this->level;
+    }
+
+    /**
+     * @param int $level
+     */
+    public function setLevel($level)
+    {
+        $this->level = (int)$level;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isActive()
+    {
+        return $this->active == 0  ? false : true;
+    }
+
+    /**
+     * @param int $active
+     */
+    public function setActive($active)
+    {
+        $this->active = (int)$active;
     }
 
     /**

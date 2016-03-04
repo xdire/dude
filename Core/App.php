@@ -9,6 +9,7 @@
 namespace Core;
 
 use Core\Face\Middleware;
+use Core\Face\RoutingController;
 use Core\Server\Request;
 use Core\Server\Response;
 
@@ -34,7 +35,7 @@ final class App extends Core {
     }
 
     /**
-     * Calling controller within application
+     * Calling Controller within application
      *
      * ------------------------
      * @param string $statement
@@ -68,7 +69,7 @@ final class App extends Core {
     }
 
     /**
-     * Calling controller within route file
+     * Calling Controller within route file
      *
      * ---------------------------
      * @param string   $statement
@@ -99,6 +100,39 @@ final class App extends Core {
             return $ctr;
 
         } else return false;
+
+    }
+
+    /**
+     * Calling Controller of RoutingController Interface within route file
+     *
+     * ---------------------------
+     * @param RoutingController $controller
+     * - address of the controller in the App/Controllers
+     * + controller need to be implementing \Core\Face\RoutingController Interface
+     * * example: SomeFolder\Controller
+     * ---------------------------
+     * @param Request  $req
+     * - System Request object which contain all useful
+     * information about incoming Request
+     * ---------------------------
+     * @param Response $res
+     * - System Response object which has methods to flush
+     * data back to connection
+     *
+     * @return bool
+     */
+    final public static function routeNextController(RoutingController $controller, Request $req, Response $res){
+
+        //$strClass="\\App\\Controller\\".$statement;
+        /** @var \Core\Face\RoutingController $ctr */
+        /*if($ctr=new $strClass()) {
+
+            $ctr->acceptRoute($req,$res);
+            return $ctr;
+
+        } else return false;*/
+        $controller->acceptRoute($req,$res);
 
     }
 

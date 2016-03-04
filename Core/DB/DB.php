@@ -19,11 +19,15 @@ use Core\Log\Log;
  */
 class DB {
 
-    /* -------------------------------------------------------------------------------------------------------
-    |
-    |   DB CLASS CONSTRUCTOR AND SERVICE FUNCTIONS
-    |
-    /* ------------------------------------------------------------------------------------------------------*/
+    /** @var DBException  */
+    static $DBExceptionDBConnFailed = null;
+    /** @var DBException  */
+    static $DBExceptionNotFound = null;
+    /** @var DBException  */
+    static $DBExceptionReadFailed = null;
+    /** @var DBException  */
+    static $DBExceptionWriteFailed = null;
+
     /** @var array|null */
     private $config=null;
     /** @var array|null */
@@ -45,10 +49,13 @@ class DB {
     /** @var int */
     public $rowsAffected=0;
 
-    // --------------------
     /** @var bool */
     private $isTransaction;
-
+    /* -------------------------------------------------------------------------------------------------------
+    |
+    |   DB CLASS CONSTRUCTOR AND SERVICE FUNCTIONS
+    |
+    /* ------------------------------------------------------------------------------------------------------*/
     /**
      * DB constructor.
      * @param null $conf_instance
@@ -86,8 +93,18 @@ class DB {
 
         $this->isTransaction = false;
 
+        if(!isset(self::$DBExceptionNotFound)) {
+            self::$DBExceptionNotFound = new DBException("Data not found", 404);
+            self::$DBExceptionWriteFailed = new DBException("Data write was failed", 500);
+            self::$DBExceptionReadFailed = new DBException("Data read was failed", 500);
+            self::$DBExceptionDBConnFailed = new DBException("Database connection was failed", 500);
+        }
+
     }
 
+    /**
+     * @throws DBException
+     */
     private function constructDBOBJ(){
 
         if($this->config['type']=='mysql'){
@@ -106,12 +123,15 @@ class DB {
                     $this->config['password']);
 
                 $this->dbinstance->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+                $this->dbinstance->setAttribute(\PDO::ATTR_PERSISTENT, true);
 
             } catch (\PDOException $e){
 
+                $this->setError($e->getCode(),$e->getMessage());
                 Log::append('Database connection failed: '.$e->getMessage());
-
+                throw self::$DBExceptionDBConnFailed;
             }
+
         }
     }
 
@@ -126,6 +146,11 @@ class DB {
         $this->errorCode = $code;
         $this->errorInfo = $message;
     }
+
+    protected function resetParams() {
+        $this->lastInsertId = null;
+        $this->rowsAffected = 0;
+    }
     /* -------------------------------------------------------------------------------------------------------
     |
     |   EXTENDABLE
@@ -134,64 +159,89 @@ class DB {
     |
     /* ------------------------------------------------------------------------------------------------------*/
     /**
-     * @param string $statement
-     * @return null|\PDOStatement
+     * RAW Select Query
+     * RETURNS PDO Statement for manual result parsing by cursor
+     *
+     * @param $statement
+     * @return \PDOStatement
+     * @throws DBException
      */
     protected function selectBegin($statement) {
+
         $this->resetError();
-        if($this->dbinstance && $statement) {
-            try {
 
-                $query = $this->dbinstance->prepare($statement);
-                $result = null;
+        try {
 
-                $result = $query->execute();
-                if($result) {
-                    return $query;
-                } else {
-                    $this->setError($query->errorCode(),$query->errorInfo());
-                }
+            $query = $this->dbinstance->prepare($statement);
+            $result = null;
 
-            } catch (\PDOException $e){
-                $this->errorInfo = $e->getMessage();
-                Log::append('Database query object encounter error: '.$e->getMessage());
+            $result = $query->execute();
+            if($result) {
+                return $query;
+            } else {
+                $this->setError($query->errorCode(),$query->errorInfo());
+                throw self::$DBExceptionNotFound;
             }
+
+        } catch (\PDOException $e) {
+
+            $this->setError($e->getCode(),$e->getMessage());
+            Log::append('Database query object encounter error: '.$e->getMessage());
+            throw self::$DBExceptionReadFailed;
+
         }
-        return null;
+
     }
 
     /**
+     * RAW Insert Query
+     * RETURNS PDO Statement for next manual processing
+     *
      * @param $statement
-     * @return null|\PDOStatement
+     * @return \PDOStatement
+     * @throws DBException
      */
     protected function writeBegin($statement) {
+
         $this->resetError();
-        if($this->dbinstance && $statement) {
+        $this->resetParams();
+        try {
 
-            try {
+            $query = $this->dbinstance->prepare($statement);
+            $result = $query->execute();
+            if ($result) {
+                $this->lastInsertId=$this->dbinstance->lastInsertId();
+                $this->rowsAffected=$query->rowCount();
+                return $query;
+            }
+            else {
+                $this->setError($query->errorCode(),$query->errorInfo());
+                throw self::$DBExceptionWriteFailed;
+            }
 
-                $query = $this->dbinstance->prepare($statement);
-                $result = $query->execute();
-                if ($result)
-                    return $query;
-                else {
-                    $this->setError($query->errorCode(),$query->errorInfo());
-                }
+        } catch (\PDOException $e) {
 
-            } catch (\PDOException $e) {
+            Log::append('Database query object encounter error: ' . $e->getMessage() . ' Query string: ' . $statement);
+            $this->setError($e->getCode(),$e->getMessage());
 
-                $this->errorInfo = $e->getMessage();
-                $this->errorCode = $e->getCode();
-                $this->setError($this->dbinstance->errorCode(),$this->dbinstance->errorInfo());
-                Log::append('Database query object encounter error: ' . $e->getMessage() . ' Query string: ' . $statement);
-
+            if($e->getCode() == 23000){
+                throw new DBException("Data can't be written because of duplication",409);
+            } else {
+                throw self::$DBExceptionWriteFailed;
             }
 
         }
-        return null;
 
     }
 
+    /**
+     * Fetch Wrapper
+     *
+     * using fetch(PDO::FETCH_ASSOC)
+     *
+     * @param \PDOStatement $q
+     * @return mixed|null
+     */
     protected function fetchRow(\PDOStatement $q){
         if($row = $q->fetch(2)) return $row;
         return null;
@@ -229,7 +279,7 @@ class DB {
     /**
      * @return null|\PDO
      */
-    public function DBobj(){
+    protected function DBobj(){
         if($this->dbinstance){
             return $this->dbinstance;
         } else {
@@ -251,68 +301,66 @@ class DB {
      * @param null $statement
      * @param null $params
      * @param bool $compressResult
-     * @return array|null
+     * @return array|\SplFixedArray
+     * @throws DBException
      */
-    public function select($statement=null,$params=null,$compressResult=false){
+    public function select($statement,$params=null,$compressResult=false){
         $this->resetError();
-        if($this->dbinstance && $statement){
 
-            try {
+        try {
 
-                $query = $this->dbinstance->prepare($statement);
-                $result=null;
+            $query = $this->dbinstance->prepare($statement);
+            $result=null;
 
-                if (isset($params) && isset($params[0])) {
+            if (isset($params) && isset($params[0])) {
 
-                    foreach ($params as $p) {
-                        $result = $query->execute($p);
-                    }
-
-                } else {
-                    $result=$query->execute();
+                foreach ($params as $p) {
+                    $result = $query->execute($p);
                 }
 
-                if($result) {
-                    if (!$compressResult) {
-                        return $query->fetchAll();
-                    }
-                    else
-                    {
-                        $return = new \SplFixedArray(2000);
-                        $i = 0;
-                        $k = 0;
-                        $fa = \PDO::FETCH_ASSOC;
-                        while ($row = $query->fetch($fa))
-                        {
-                            $return[$k] = $row;
-                            $i++;
-                            $k++;
-                            if($i > 1999)
-                            {
-                                $i=0;
-                                $oldIndex = $return->getSize();
-                                $return->setSize($oldIndex+2000);
-                            }
-                        }
-                        $return->setSize($k);
+            } else {
+                $result=$query->execute();
+            }
 
-                        return $return;
-                    }
+            if($result) {
+                if (!$compressResult) {
+                    return $query->fetchAll();
                 }
                 else
                 {
-                    $this->errorFullInfo=$query->errorInfo();
+                    $return = new \SplFixedArray(2000);
+                    $i = 0;
+                    $k = 0;
+                    $fa = \PDO::FETCH_ASSOC;
+                    while ($row = $query->fetch($fa))
+                    {
+                        $return[$k] = $row;
+                        $i++;
+                        $k++;
+                        if($i > 1999)
+                        {
+                            $i=0;
+                            $oldIndex = $return->getSize();
+                            $return->setSize($oldIndex+2000);
+                        }
+                    }
+                    $return->setSize($k);
+
+                    return $return;
                 }
             }
-            catch (\PDOException $e){
-                $this->setError($e->getCode(),$e->getMessage());
-                $this->errorInfo = $e->getMessage();
-                Log::append('Database query object encounter error: '.$e->getMessage());
+            else
+            {
+                $this->setError($query->errorCode(),$query->errorInfo());
+                throw self::$DBExceptionNotFound;
             }
-
+        }
+        catch (\PDOException $e){
+            $this->setError($e->getCode(),$e->getMessage());
+            Log::append('Database query object encounter error: '.$e->getMessage());
+            throw self::$DBExceptionReadFailed;
         }
 
-        return null;
     }
     /* -------------------------------------------------------------------------------------------------------
     |
@@ -329,39 +377,39 @@ class DB {
      * @param null $statement
      * @param null $params
      * @return mixed|null
+     * @throws \Core\DB\DBException
      */
-    public function selectRow($statement=null,$params=null){
+    public function selectRow($statement=null,$params=null) {
+
         $this->resetError();
-        if($this->dbinstance && $statement){
 
-            try {
+        try {
 
-                $query = $this->dbinstance->prepare($statement);
-                $result=null;
+            $query = $this->dbinstance->prepare($statement);
+            $result=null;
 
-                if (isset($params) && isset($params[0])) {
+            if (isset($params) && isset($params[0])) {
 
-                    foreach ($params as $p) {
-                        $result = $query->execute($p);
-                    }
-
-                } else {
-                    $result=$query->execute();
+                foreach ($params as $p) {
+                    $result = $query->execute($p);
                 }
 
-                if($result) return $query->fetch(\PDO::FETCH_ASSOC,\PDO::FETCH_ORI_LAST);
-                else {
-                    $this->errorFullInfo=$query->errorInfo();
-                }
-            }
-            catch (\PDOException $e){
-                $this->errorInfo = $e->getMessage();
-                Log::append('Database query object encounter error: '.$e->getMessage());
+            } else {
+                $result=$query->execute();
             }
 
+            if($result)
+                return $query->fetch(\PDO::FETCH_ASSOC,\PDO::FETCH_ORI_LAST);
+            else {
+                $this->setError($query->errorCode(),$query->errorInfo());
+                throw self::$DBExceptionNotFound;
+            }
         }
-
-        return null;
+        catch (\PDOException $e){
+            $this->setError($e->getCode(),$e->getMessage());
+            Log::append('Database query object encounter error: '.$e->getMessage());
+            throw self::$DBExceptionReadFailed;
+        }
 
     }
     /* -------------------------------------------------------------------------------------------------------
@@ -404,65 +452,94 @@ class DB {
         return ($result && $this->rowsAffected>0)? true:false;
 
     }
+
     /**
      * @param $statement
      * @param $params
      * @return bool
-     * @throws \Exception : Only if it in Transactional mode
+     * @throws \Core\DB\DBException
      */
-    private function insertExec($statement,$params){
+    private function insertExec($statement,$params) {
+
         $this->resetError();
-        if($this->dbinstance && $statement){
+        $this->resetParams();
 
-            try {
-                $result=false;
-                $query = $this->dbinstance->prepare($statement);
+        try {
+            $result=false;
+            $query = $this->dbinstance->prepare($statement);
 
-                if (isset($params) && isset($params[0])) {
+            if (isset($params) && isset($params[0])) {
 
-                    foreach($params as $p){
-                        $result = $query->execute($p);
-                    }
-
-                } else {
-                    $result=$query->execute();
+                foreach($params as $p){
+                    $result = $query->execute($p);
                 }
 
-                if($result) {
-
-                    $this->lastInsertId=$this->dbinstance->lastInsertId();
-                    $this->rowsAffected=$query->rowCount();
-
-                    if($query->nextRowset()) {
-
-                        $rowset=1;
-
-                        do {
-                            $rowset++;
-                        } while ($query->nextRowset());
-
-                        $this->rowsAffected = $rowset;
-
-                    }
-
-                    $query = null;
-                    return true;
-
-                } else {
-                    $this->setError($query->errorCode(),$query->errorInfo());
-                }
+            } else {
+                $result=$query->execute();
             }
-            catch (\PDOException $e) {
 
-                $this->setError($e->getCode(),$e->getMessage());
-                Log::append('Database query object encounter error: '.$e->getMessage().' Query string: '.$statement);
+            if($result) {
 
+                $this->lastInsertId=$this->dbinstance->lastInsertId();
+                $this->rowsAffected=$query->rowCount();
+
+                if($query->nextRowset()) {
+
+                    $rowset=1;
+
+                    do {
+                        $rowset++;
+                    } while ($query->nextRowset());
+
+                    $this->rowsAffected = $rowset;
+
+                }
+
+                $query = null;
+                return true;
+
+            } else {
+                $this->setError($query->errorCode(),$query->errorInfo());
+                throw self::$DBExceptionWriteFailed;
+            }
+        }
+        catch (\PDOException $e) {
+
+            Log::append('Database query object encounter error: '.$e->getMessage().' Query string: '.$statement);
+            $this->setError($e->getCode(),$e->getMessage());
+
+            if($e->getCode() == 23000){
+                throw new DBException("Data can't be written because of duplication",409);
+            } else {
+                throw self::$DBExceptionWriteFailed;
             }
 
         }
 
-        return false;
+    }
 
+    /**
+     * @return boolean
+     */
+    public function isError()
+    {
+        return $this->error;
+    }
+
+    /**
+     * @return null|string
+     */
+    public function getErrorCode()
+    {
+        return $this->errorCode;
+    }
+
+    /**
+     * @return null|string
+     */
+    public function getErrorInfo()
+    {
+        return $this->errorInfo;
     }
 
 }
