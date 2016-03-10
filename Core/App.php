@@ -120,18 +120,11 @@ final class App extends Core {
      * - System Response object which has methods to flush
      * data back to connection
      *
-     * @return bool
+     * @return void
      */
     final public static function routeNextController(RoutingController $controller, Request $req, Response $res){
 
-        //$strClass="\\App\\Controller\\".$statement;
         /** @var \Core\Face\RoutingController $ctr */
-        /*if($ctr=new $strClass()) {
-
-            $ctr->acceptRoute($req,$res);
-            return $ctr;
-
-        } else return false;*/
         $controller->acceptRoute($req,$res);
 
     }

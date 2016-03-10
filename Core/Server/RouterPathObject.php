@@ -9,6 +9,13 @@ namespace Core\Server;
 
 use Core\Face\Middleware;
 
+/**
+ * Router path object.
+ * Each route will consist from the set of objects of this kind
+ *
+ * Class RouterPathObject
+ * @package Core\Server
+ */
 class RouterPathObject
 {
     // Set of callable functions attached to
@@ -37,7 +44,14 @@ class RouterPathObject
         $this->extensions = new \SplFixedArray($this->extLen);
     }
 
-    function &__addExtension($routeId, RouterPathObject $pathObject) {
+    /**
+     * Add extension of Route to RoutePathObject
+     *
+     * @param   int              $routeId
+     * @param   RouterPathObject $pathObject
+     * @return  RouterPathObject
+     */
+    public function &__addExtension($routeId, RouterPathObject $pathObject) {
 
         if($routeId > $this->extLen) {
 
@@ -58,72 +72,105 @@ class RouterPathObject
 
     }
 
-    function &__getExtensionForRouteId($routeId){
+    /**
+     * TODO Function need to be verified against PHP behaviour to return ref from array and deleted afterwards
+     * @param $routeId
+     * @return mixed|null
+     */
+    public function &__getExtensionForRouteId($routeId){
         if($routeId < $this->extLen){
             return $this->extensions[$routeId];
         }
         return null;
     }
 
-    function __checkExtenstionForRouteId($routeId){
+    /**
+     * Check if extension is exist in this route
+     *
+     * @param int $routeId
+     * @return bool
+     */
+    public function __checkExtenstionForRouteId($routeId){
         if($routeId < $this->extLen && isset($this->extensions[$routeId]))
             return true;
         return false;
     }
 
-    function __addName($name) {
+    /**
+     * Add route variable to RoutePath /*routeVariable
+     *
+     * @param $name
+     */
+    public function __addName($name) {
         $this->attachedNames[$this->aNamesAmount++] = $name;
     }
 
-    function __addEvent($eventType,$closure) {
+    /**
+     * Set callable event to some specified Event Type
+     *
+     * @param int $eventType
+     * @param Callable $closure
+     */
+    public function __addEvent($eventType,$closure) {
         $this->attachedEvents[$eventType] = $closure;
     }
 
     /**
+     * Retrieve extension for specified route
+     *
      * @param $routeId
-     * @return RouterPathObject|null
+     * @return RouterPathObject | null
      */
-    function getExtensionForRouteId($routeId) {
-
+    public function getExtensionForRouteId($routeId) {
         if($routeId < $this->extLen){
             return $this->extensions[$routeId];
         }
         return null;
-
     }
 
-    function getEventForEventType($eventType) {
+    /**
+     * Return Callable attached to Event
+     *
+     * @param $eventType
+     * @return Callable | null
+     */
+    public function getEventForEventType($eventType) {
         return $this->attachedEvents[$eventType];
     }
 
-    function getAliasNameForCellNumber($number){
+    /**
+     * Return alias names specified with /*routeVariable for route
+     * @param int $number
+     * @return null|string
+     */
+    public function getAliasNameForCellNumber($number){
         if($number < $this->aNamesAmount){
             return $this->attachedNames[$number];
         }
         return null;
     }
 
-    function getAllAliasNames(){
+    public function getAllAliasNames() {
         if($this->aNamesAmount > 0) return $this->attachedNames; return null;
     }
 
-    function getAliasNamesAmount(){
+    public function getAliasNamesAmount(){
         return $this->aNamesAmount;
     }
 
     /** * @return Middleware|null */
-    function getMiddleware(){
+    public function getMiddleware(){
         if(isset($this->middleware)){
             return $this->middleware;
         }
         return null;
     }
 
-    function __setAsSecured(){
+    public function __setAsSecured(){
         $this->secured = true;
     }
 
-    function __setMiddleware(Middleware $m){
+    public function __setMiddleware(Middleware $m){
         $this->middleware = $m;
     }
 

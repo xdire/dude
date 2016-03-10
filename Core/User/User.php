@@ -7,6 +7,8 @@
 
 namespace Core\User;
 
+use Core\Face\UserPermissions;
+
 class User
 {
     /** @var int|null  */
@@ -32,6 +34,11 @@ class User
     /** @var int */
     protected $active=0;
 
+    /** @var UserPermissions */
+    protected $security=null;
+    /** @var bool  */
+    protected $hasSecurity = false;
+
     /**
      * @return bool
      */
@@ -51,6 +58,33 @@ class User
      */
     public function toJson() {
         return json_encode($this->toArray());
+    }
+
+    /**
+     * @return boolean
+     */
+    public function hasSecurityParameters()
+    {
+        return $this->hasSecurity;
+    }
+
+    /**
+     * Variable user permissions implementation through UserPermissions interface
+     *
+     * @param UserPermissions $entity
+     */
+    public function setSecurityPermissions(UserPermissions $entity) {
+        $this->security = $entity;
+        $this->hasSecurity = true;
+    }
+
+    /**
+     * Return object which implementing UserPermissions
+     *
+     * @return UserPermissions
+     */
+    public function getSecurityPermissions() {
+        return $this->security;
     }
 
     /**

@@ -15,14 +15,14 @@ class RouterPathHolder
     /** @var RouterPathNode | null  */
     private $current = null;
 
-    function addRoot(RouterPathObject &$rpo){
+    public function addRoot(RouterPathObject &$rpo){
         $root = new RouterPathNode();
         $root->routeObject = &$rpo;
         $this->root = $root;
         $this->current = $root;
     }
 
-    function addNext(RouterPathObject &$rpo){
+    public function addNext(RouterPathObject &$rpo){
         $new = new RouterPathNode();
         $new->routeObject = &$rpo;
         $this->current->next = &$new;
@@ -32,21 +32,21 @@ class RouterPathHolder
     /**
      * @return RouterPathNode|null
      */
-    function getCurrent() {
+    public function getCurrent() {
         return $this->current;
     }
 
     /**
      * @return RouterPathNode|null
      */
-    function getRoot() {
+    public function getRoot() {
         return $this->root;
     }
 
     /**
      * @return RouterPathObject|null
      */
-    function getRootObject() {
+    public function getRootObject() {
         if(isset($this->root))
             return $this->root->routeObject;
         return null;

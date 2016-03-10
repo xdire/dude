@@ -8,7 +8,6 @@
 namespace Core;
 
 use Core\Face\Middleware;
-use Core\Log\Log;
 use Core\Server\Request;
 use Core\Server\Response;
 use Core\Server\RouterPathHolder;
@@ -171,7 +170,7 @@ class Core {
     }
 
     /**
-     *  Router Dispatcher
+     *  Router Dispatcher Create Routes
      *  ------------------------------------------------------
      *  @param string $method
      *  @param string $path
