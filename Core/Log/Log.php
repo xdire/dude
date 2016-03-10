@@ -7,9 +7,10 @@
  */
 
 namespace Xdire\Dude\Core\Log;
-use Xdire\Dude\Core\Xdire\Dude\Core;
 
-class Log extends Xdire\Dude\Core {
+use Xdire\Dude\Core\Kernel;
+
+class Log extends Kernel {
 
     private static $logBuffer=array();
     private static $logStart=true;

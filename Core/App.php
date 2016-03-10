@@ -8,12 +8,13 @@
 
 namespace Xdire\Dude\Core;
 
+use Xdire\Dude\Core\Face\Controller;
 use Xdire\Dude\Core\Face\Middleware;
 use Xdire\Dude\Core\Face\RoutingController;
 use Xdire\Dude\Core\Server\Request;
 use Xdire\Dude\Core\Server\Response;
 
-final class App extends Core {
+final class App extends Kernel {
 
     protected function __construct(){}
     /** @var null | User */
@@ -40,66 +41,16 @@ final class App extends Core {
      * ------------------------
      * @param string $statement
      *  - address of the controller in the App/Controllers
-     *  * example: SomeFolder\Controller@someMethod
+     *  + controller need to be implementing \Xdire\Dude\Core\Face\Controller Interface
      * ------------------------
      * @param mixed|null $data
      * - mixed type of variable or nothing
      *
-     * @return bool
+     * @return void
      */
-    final public static function useController($statement,$data=null){
+    final public static function useController(Controller $controller,$data=null) {
 
-        $expClass=explode('@',$statement);
-        $strClass="\\App\\Controller\\".$expClass[0];
-        $strFunc=(isset($expClass[1]))?$expClass[1]:'';
-
-        if($ctr=new $strClass()){
-
-            if(strlen($strFunc)>0 && method_exists($ctr,$strFunc)){
-                if(isset($data)) {
-                    $ctr->$strFunc($data);
-                } else {
-                    $ctr->$strFunc();
-                }
-            }
-            return $ctr;
-
-        } else return false;
-
-    }
-
-    /**
-     * Calling Controller within route file
-     *
-     * ---------------------------
-     * @param string   $statement
-     * - address of the controller in the App/Controllers
-     * * example: SomeFolder\Controller@someMethod
-     * ---------------------------
-     * @param Request  $req
-     * - System Request object which contain all useful
-     * information about incoming Request
-     * ---------------------------
-     * @param Response $res
-     * - System Response object which has methods to flush
-     * data back to connection
-     *
-     * @return bool
-     */
-    final public static function routeController($statement, Request $req, Response $res){
-
-        $expClass=explode('@',$statement);
-        $strClass="\\App\\Controller\\".$expClass[0];
-        $strFunc=(isset($expClass[1]))?$expClass[1]:'';
-
-        if($ctr=new $strClass()){
-
-            if(strlen($strFunc)>0 && method_exists($ctr,$strFunc)){
-                $ctr->$strFunc($req,$res);
-            }
-            return $ctr;
-
-        } else return false;
+        $controller->start($data);
 
     }
 
@@ -124,7 +75,6 @@ final class App extends Core {
      */
     final public static function routeNextController(RoutingController $controller, Request $req, Response $res){
 
-        /** @var \Xdire\Dude\Core\Face\RoutingController $ctr */
         $controller->acceptRoute($req,$res);
 
     }
