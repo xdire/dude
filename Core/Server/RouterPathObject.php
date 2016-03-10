@@ -5,16 +5,16 @@
  * Time: 12:54 PM
  */
 
-namespace Core\Server;
+namespace Xdire\Dude\Core\Server;
 
-use Core\Face\Middleware;
+use Xdire\Dude\Core\Face\Middleware;
 
 /**
  * Router path object.
  * Each route will consist from the set of objects of this kind
  *
  * Class RouterPathObject
- * @package Core\Server
+ * @package Xdire\Dude\Core\Server
  */
 class RouterPathObject
 {

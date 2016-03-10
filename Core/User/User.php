@@ -5,9 +5,9 @@
  * Time: 1:38 PM
  */
 
-namespace Core\User;
+namespace Xdire\Dude\Core\User;
 
-use Core\Face\UserPermissions;
+use Xdire\Dude\Core\Face\UserPermissions;
 
 class User
 {

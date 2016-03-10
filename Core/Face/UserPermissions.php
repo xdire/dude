@@ -5,7 +5,7 @@
  * Time: 11:26 AM
  */
 
-namespace Core\Face;
+namespace Xdire\Dude\Core\Face;
 
 
 interface UserPermissions

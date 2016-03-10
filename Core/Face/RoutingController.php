@@ -5,10 +5,10 @@
  * Time: 4:15 PM
  */
 
-namespace Core\Face;
+namespace Xdire\Dude\Core\Face;
 
-use Core\Server\Request;
-use Core\Server\Response;
+use Xdire\Dude\Core\Server\Request;
+use Xdire\Dude\Core\Server\Response;
 
 interface RoutingController
 {

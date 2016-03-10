@@ -5,7 +5,7 @@
  * Time: 10:37 PM
  */
 
-namespace Core\DB;
+namespace Xdire\Dude\Core\DB;
 
 class DBException extends \Exception
 {

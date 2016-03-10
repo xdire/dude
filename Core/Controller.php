@@ -5,7 +5,7 @@
  * Time: 10:07 AM
  */
 
-namespace Core;
+namespace Xdire\Dude\Core;
 
 abstract class Controller
 {

@@ -5,9 +5,9 @@
  * Time: 11:50 AM
  */
 
-namespace Core\Server;
+namespace Xdire\Dude\Core\Server;
 
-use Core\User\User;
+use Xdire\Dude\Core\User\User;
 
 class Request
 {

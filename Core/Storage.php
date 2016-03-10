@@ -5,7 +5,7 @@
  * Time: 12:02
  */
 
-namespace Core;
+namespace Xdire\Dude\Core;
 
 class Storage
 {

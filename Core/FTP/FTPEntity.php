@@ -1,4 +1,4 @@
-<?php namespace Core\FTP;
+<?php namespace Xdire\Dude\Core\FTP;
 /**
  * Created by Anton Repin.
  * Date: 18.08.15
@@ -7,7 +7,7 @@
 
 /**
  * Class FTPEntity
- * @package Core\Model
+ * @package Xdire\Dude\Core\Model
  */
 class FTPEntity
 {

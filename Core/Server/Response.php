@@ -5,7 +5,7 @@
  * Time: 11:50 AM
  */
 
-namespace Core\Server;
+namespace Xdire\Dude\Core\Server;
 
 class Response
 {

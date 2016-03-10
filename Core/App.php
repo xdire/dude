@@ -6,12 +6,12 @@
  * Time: 9:54
  */
 
-namespace Core;
+namespace Xdire\Dude\Core;
 
-use Core\Face\Middleware;
-use Core\Face\RoutingController;
-use Core\Server\Request;
-use Core\Server\Response;
+use Xdire\Dude\Core\Face\Middleware;
+use Xdire\Dude\Core\Face\RoutingController;
+use Xdire\Dude\Core\Server\Request;
+use Xdire\Dude\Core\Server\Response;
 
 final class App extends Core {
 
@@ -109,7 +109,7 @@ final class App extends Core {
      * ---------------------------
      * @param RoutingController $controller
      * - address of the controller in the App/Controllers
-     * + controller need to be implementing \Core\Face\RoutingController Interface
+     * + controller need to be implementing \Xdire\Dude\Core\Face\RoutingController Interface
      * * example: SomeFolder\Controller
      * ---------------------------
      * @param Request  $req
@@ -124,7 +124,7 @@ final class App extends Core {
      */
     final public static function routeNextController(RoutingController $controller, Request $req, Response $res){
 
-        /** @var \Core\Face\RoutingController $ctr */
+        /** @var \Xdire\Dude\Core\Face\RoutingController $ctr */
         $controller->acceptRoute($req,$res);
 
     }

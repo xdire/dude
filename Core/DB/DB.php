@@ -8,13 +8,13 @@
  *
  */
 
-namespace Core\DB;
-use Core\App;
-use Core\Log\Log;
+namespace Xdire\Dude\Core\DB;
+use Xdire\Dude\Core\App;
+use Xdire\Dude\Core\Log\Log;
 
 /**
  * Class DB
- * @package Core\DB
+ * @package Xdire\Dude\Core\DB
  *
  */
 class DB {
@@ -377,7 +377,7 @@ class DB {
      * @param null $statement
      * @param null $params
      * @return mixed|null
-     * @throws \Core\DB\DBException
+     * @throws \Xdire\Dude\Core\DB\DBException
      */
     public function selectRow($statement=null,$params=null) {
 
@@ -457,7 +457,7 @@ class DB {
      * @param $statement
      * @param $params
      * @return bool
-     * @throws \Core\DB\DBException
+     * @throws \Xdire\Dude\Core\DB\DBException
      */
     private function insertExec($statement,$params) {
 

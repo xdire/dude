@@ -5,7 +5,7 @@
  * Time: 1:22 AM
  */
 
-namespace Core\Server;
+namespace Xdire\Dude\Core\Server;
 
 
 class RouterPathNode

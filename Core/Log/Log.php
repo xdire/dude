@@ -6,10 +6,10 @@
  * Time: 10:54
  */
 
-namespace Core\Log;
-use Core\Core;
+namespace Xdire\Dude\Core\Log;
+use Xdire\Dude\Core\Xdire\Dude\Core;
 
-class Log extends Core {
+class Log extends Xdire\Dude\Core {
 
     private static $logBuffer=array();
     private static $logStart=true;

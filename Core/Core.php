@@ -5,13 +5,13 @@
  * Date: 18.05.15
  * Time: 12:54
  */
-namespace Core;
+namespace Xdire\Dude\Core;
 
-use Core\Face\Middleware;
-use Core\Server\Request;
-use Core\Server\Response;
-use Core\Server\RouterPathHolder;
-use Core\Server\RouterPathObject;
+use Xdire\Dude\Core\Face\Middleware;
+use Xdire\Dude\Core\Server\Request;
+use Xdire\Dude\Core\Server\Response;
+use Xdire\Dude\Core\Server\RouterPathHolder;
+use Xdire\Dude\Core\Server\RouterPathObject;
 
 class Core {
 
@@ -20,6 +20,8 @@ class Core {
 
     // Default Log path
     protected static $logpath='Data/Log';
+    // Default App path
+    protected static $appPath=null;
 
     // Routing related variables
 
@@ -39,7 +41,7 @@ class Core {
     private static $routingDictionary = [];
     /** @var int */
     private static $routingDictionaryCounter = 0;
-    /** @var \Core\Server\RouterPathObject[]  */
+    /** @var \Xdire\Dude\Core\Server\RouterPathObject[]  */
     private static $routingPathObjects = null;
 
     // Incoming request method translation to integer
@@ -54,31 +56,41 @@ class Core {
 
     private function __construct(){}
 
+    public static function feedAppRootFolderLocation($location){
+        self::$appPath = $location;
+    }
+
     /**
      * INIT Method - used in /app.php as method which init all framework to start
      *
+     * @param string $appRootLocation
      * @throws \Exception
      */
-    public static function init() {
+    public static function init($appRootLocation = null) {
+
+        if(isset($appRootLocation)) self::$appPath = $appRootLocation;
 
         // import all non namespaced (global NS) files
-        require(O_CORPATH.'/Cons.php');
-        require(O_ROOTPATH.'/App/const.php');
-        require(O_CORPATH.'/Func.php');
+        require(__DIR__.'/Cons.php');
+        require(__DIR__.'/Func.php');
 
         self::$routingPathObjects = new \SplFixedArray(1024);
+
+        // Check if App folder is existed
+        if(!isset(self::$appPath)) throw new \Exception("Working directory is not specified,
+         please use Core::feedAppRootFolderLocation() before init");
 
         // Switch environment properties and config zones
         if(APPENVIRONMENT=='dev') {
             error_reporting(-1);
             // import config (s)
-            require(O_ROOTPATH.'/App/config_dev.php');
+            require(self::$appPath.'/App/config_dev.php');
             self::$config = applicationConfig();
 
         } elseif(APPENVIRONMENT=='prod') {
             error_reporting(0);
             // import config (s)
-            require(O_ROOTPATH.'/App/config_prod.php');
+            require(self::$appPath.'/App/config_prod.php');
             self::$config = applicationConfig();
 
         } else {
@@ -89,14 +101,14 @@ class Core {
         if(!empty($_SERVER['REMOTE_ADDR']) && isset($_SERVER['REQUEST_METHOD'])) {
 
             self::initRouting();
-            require(O_ROOTPATH . '/App/route.php');
+            require(self::$appPath . '/App/route.php');
             self::routeUser();
 
         }
         // Run processes defined in process.php
         else {
             if(!defined("SYSTEM_PROCESS_ID")) define("SYSTEM_PROCESS_ID",null);
-            require(O_ROOTPATH . '/App/process.php');
+            require(self::$appPath . '/App/process.php');
         }
 
         if(session_status() === PHP_SESSION_ACTIVE){
@@ -104,6 +116,8 @@ class Core {
         }
 
     }
+
+
 
     protected static function initRouting() {
 

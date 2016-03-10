@@ -1,12 +1,6 @@
-<?php namespace Core\FTP;
-/**
- * Created by Anton Repin.
- * Date: 30.06.15
- * Time: 10:27
- */
+<?php namespace Xdire\Dude\Core\FTP;
 
-use Core\Log\Log;
-use Core\FTP\FTPEntity;
+use Xdire\Dude\Core\Log\Log;
 
 final class FTP {
 

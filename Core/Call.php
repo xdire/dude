@@ -1,5 +1,5 @@
-<?php namespace Core;
-use Core\Log\Log;
+<?php namespace Xdire\Dude\Core;
+use Xdire\Dude\Core\Log\Log;
 
 /**
  * Created by Anton Repin.

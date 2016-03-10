@@ -4,9 +4,9 @@
  * Date: 09.06.15
  * Time: 10:33
  */
-namespace Core;
+namespace Xdire\Dude\Xdire\Dude\Core;
 
-use Core\DB\DB;
+use Xdire\Dude\Core\DB\DB;
 
 abstract class Model {
 

@@ -1,9 +1,9 @@
 .idea
 composer.phar
 vendor
-App/config_dev.php
-App/config_prod.php
-App/Controller/Tests
-App/Model/Tests
-App/route.php
-Data/Log/
+App
+Data
+Drivers
+public
+run.php
+app.php
