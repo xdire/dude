@@ -1,21 +1,11 @@
-<?php
-/**
- * Created by Anton Repin.
- * User: xdire
- * Date: 20.05.15
- * Time: 9:00
- *
- *
- */
+<?php namespace Xdire\Dude\Core\DB;
 
-namespace Xdire\Dude\Core\DB;
 use Xdire\Dude\Core\App;
 use Xdire\Dude\Core\Log\Log;
 
 /**
  * Class DB
  * @package Xdire\Dude\Core\DB
- *
  */
 class DB {
 
@@ -29,25 +19,25 @@ class DB {
     static $DBExceptionWriteFailed = null;
 
     /** @var array|null */
-    private $config=null;
+    private $config = null;
     /** @var array|null */
-    private $options=null;
+    private $options = null;
 
     /** @var \PDO */
-    protected $dbinstance=null;
+    protected $dbinstance = null;
 
     /** @var int|null  */
-    public $lastInsertId=null;
+    public $lastInsertId = null;
     /** @var bool */
-    public $error=false;
+    public $error = false;
     /** @var string|null */
-    public $errorCode=0;
+    public $errorCode = 0;
     /** @var string|null */
-    public $errorInfo=null;
+    public $errorInfo = null;
     /** @var string|null */
-    public $errorFullInfo=null;
+    public $errorFullInfo = null;
     /** @var int */
-    public $rowsAffected=0;
+    public $rowsAffected = 0;
 
     /** @var bool */
     private $isTransaction;
@@ -66,19 +56,16 @@ class DB {
      *
      * @throws \Exception
      */
-    function __construct($conf_instance=null,$options=null){
+    function __construct($conf_instance=null) {
 
-        if(is_array($options)){
-            $this->options=$options;
-        }
-        if(!isset($conf_instance)){
+        if(!isset($conf_instance)) {
 
             # Apply parameters from config
             $this->config = App::getConfig('mysql_connection');
             if(!empty($this->config))
                 $this->constructDBOBJ();
             else
-                throw new \Exception("Database driver can't be instantiated. Failed to load configuration.");
+                throw new \DBException("Database driver can't be instantiated. Failed to load configuration.");
 
         } else {
 
@@ -105,7 +92,7 @@ class DB {
     /**
      * @throws DBException
      */
-    private function constructDBOBJ(){
+    private function constructDBOBJ() {
 
         if($this->config['type']=='mysql'){
 
@@ -123,13 +110,19 @@ class DB {
                     $this->config['password']);
 
                 $this->dbinstance->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-                $this->dbinstance->setAttribute(\PDO::ATTR_PERSISTENT, true);
+
+                // Disabled persistence connections attribute
+                // need to be reused for remote servers with
+                // using register_shutdown_function()
+                //
+                //$this->dbinstance->setAttribute(\PDO::ATTR_PERSISTENT, true);
 
             } catch (\PDOException $e){
 
                 $this->setError($e->getCode(),$e->getMessage());
                 Log::append('Database connection failed: '.$e->getMessage());
                 throw self::$DBExceptionDBConnFailed;
+
             }
 
         }
@@ -224,7 +217,7 @@ class DB {
             Log::append('Database query object encounter error: ' . $e->getMessage() . ' Query string: ' . $statement);
             $this->setError($e->getCode(),$e->getMessage());
 
-            if($e->getCode() == 23000){
+            if($e->getCode() == 23000) {
                 throw new DBException("Data can't be written because of duplication",409);
             } else {
                 throw self::$DBExceptionWriteFailed;
@@ -242,7 +235,7 @@ class DB {
      * @param \PDOStatement $q
      * @return mixed|null
      */
-    protected function fetchRow(\PDOStatement $q){
+    protected function fetchRow(\PDOStatement $q) {
         if($row = $q->fetch(2)) return $row;
         return null;
     }
@@ -253,17 +246,17 @@ class DB {
     |
     |
     /* ------------------------------------------------------------------------------------------------------*/
-    public function transactionStart(){
+    public function transactionStart() {
         $this->dbinstance->beginTransaction();
         $this->isTransaction = true;
     }
-    public function transactionCommit(){
+    public function transactionCommit() {
         if($this->isTransaction) {
             $this->dbinstance->commit();
         }
         $this->isTransaction = false;
     }
-    public function transactionCancel(){
+    public function transactionCancel() {
         if($this->isTransaction) {
             $this->dbinstance->rollBack();
         }
@@ -277,10 +270,12 @@ class DB {
     |
     /* ------------------------------------------------------------------------------------------------------*/
     /**
+     * DB Object as PDO instance
+     * -------------------------
      * @return null|\PDO
      */
-    protected function DBobj(){
-        if($this->dbinstance){
+    protected function DBobj() {
+        if($this->dbinstance) {
             return $this->dbinstance;
         } else {
             return null;
@@ -304,7 +299,7 @@ class DB {
      * @return array|\SplFixedArray
      * @throws DBException
      */
-    public function select($statement,$params=null,$compressResult=false){
+    public function select($statement,$params=null,$compressResult=false) {
         $this->resetError();
 
         try {
@@ -323,11 +318,16 @@ class DB {
             }
 
             if($result) {
+
                 if (!$compressResult) {
                     return $query->fetchAll();
                 }
                 else
                 {
+                    // Default result compressing operation
+                    // using incremental raise of array size.
+                    // By default it's not will double the
+                    // array size, but make incremental grow
                     $return = new \SplFixedArray(2000);
                     $i = 0;
                     $k = 0;
@@ -348,6 +348,7 @@ class DB {
 
                     return $return;
                 }
+
             }
             else
             {
@@ -428,7 +429,7 @@ class DB {
      * @param null $params
      * @return bool
      */
-    public function insert($statement=null,$params=null){
+    public function insert($statement=null,$params=null) {
         $this->rowsAffected=0;
         return $this->insertExec($statement,$params);
     }
@@ -437,7 +438,7 @@ class DB {
      * @param null $params
      * @return bool
      */
-    public function update($statement=null,$params=null){
+    public function update($statement=null,$params=null) {
         $this->rowsAffected=0;
         return $this->insertExec($statement,$params);
     }
@@ -446,7 +447,7 @@ class DB {
      * @param null $params
      * @return bool
      */
-    public function delete($statement=null,$params=null){
+    public function delete($statement=null,$params=null) {
         $this->rowsAffected=0;
         $result=$this->insertExec($statement,$params);
         return ($result && $this->rowsAffected>0)? true:false;
