@@ -1,11 +1,4 @@
-<?php
-/**
- * Created by Anton Repin.
- * Date: 2/15/16
- * Time: 11:50 AM
- */
-
-namespace Xdire\Dude\Core\Server;
+<?php namespace Xdire\Dude\Core\Server;
 
 class Response
 {
@@ -13,6 +6,10 @@ class Response
     private $code = 200;
     private $content = "";
 
+    /**
+     * @param int $code
+     * @param mixed $content
+     */
     public function send($code,$content) {
 
         $this->code = $code;
@@ -30,6 +27,10 @@ class Response
         ob_flush();
     }
 
+    /**
+     * @param int $code
+     * @param mixed | null $text
+     */
     public function end($code,$text=null){
         header("HTTP/1.0 ".$code);
         if(!empty($text)) echo $text;
@@ -37,6 +38,10 @@ class Response
         exit();
     }
 
+    /**
+     * @param string $path
+     * @param mixed $text
+     */
     public function route($path,$text) {
         header('Location: '.$path);
     }

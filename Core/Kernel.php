@@ -1,11 +1,4 @@
-<?php
-/**
- * Created by PhpStorm.
- * User: xdire
- * Date: 18.05.15
- * Time: 12:54
- */
-namespace Xdire\Dude\Core;
+<?php namespace Xdire\Dude\Core;
 
 use Xdire\Dude\Core\Face\Middleware;
 use Xdire\Dude\Core\Server\Request;
@@ -74,7 +67,7 @@ abstract class Kernel {
     /**
      * INIT Method - used in /app.php as method which init all framework to start
      *
-     * @param string $appRootLocation
+     * @param array $config
      * @throws \Exception
      */
     public static function init(Array $config) {
