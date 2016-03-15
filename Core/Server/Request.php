@@ -52,25 +52,68 @@ class Request
 
     private function _setup() {
 
-        if($this->headers = getallheaders()) {
-            $a = [];
-            foreach($this->headers as $name=>$value) {
-                if($name == "AuthKey") {
-                    $this->authKey = $value;
-                } elseif ($name == "AuthUser") {
-                    $this->authUser = $value;
-                } elseif ($name == "AuthAgent") {
-                    $this->authAgent = $value;
-                } elseif ($name == "UserAgentVer") {
-                    $this->apiVer = $value;
-                } elseif ($name == "Content-Length"){
-                    $this->contentLength = intval($value);
-                } elseif ($name == "Content-Type"){
-                    $this->contentType = $value;
+        // Polyfill function in nginx case
+        if (function_exists('getallheaders'))
+        {
+
+            foreach ($_SERVER as $name => $value)
+            {
+
+                if (strpos($name,'HTTP_') !== false) {
+
+                    if($name == "HTTP_AUTHKEY") {
+                        $this->authKey = $value;
+                    } elseif ($name == "HTTP_AUTHUSER") {
+                        $this->authUser = $value;
+                    } elseif ($name == "HTTP_AUTHAGENT") {
+                        $this->authAgent = $value;
+                    } elseif ($name == "HTTP_USERAGENTVER") {
+                        $this->apiVer = $value;
+                    }
+                    else {
+                        $name = str_replace(' ', '-', strtolower(str_replace('_', ' ', substr($name, 5))));
+                        $this->headers[$name] = $value;
+                    }
+
                 }
-                $a[strtolower($name)] = $value;
+                elseif($name == "CONTENT_LENGTH"){
+                    $this->contentLength = intval($value);
+                    $this->headers["content-length"] = $value;
+                }
+                elseif($name == "CONTENT_TYPE"){
+                    $this->contentType = $value;
+                    $this->headers["content-type"] = $value;
+                } else
+                    break;
+
             }
-            $this->headers = $a;
+
+        }
+        // Standard for Apache Web server
+        else
+        {
+
+            if($this->headers = getallheaders()) {
+                $a = [];
+                foreach($this->headers as $name=>$value) {
+                    if($name == "AuthKey") {
+                        $this->authKey = $value;
+                    } elseif ($name == "AuthUser") {
+                        $this->authUser = $value;
+                    } elseif ($name == "AuthAgent") {
+                        $this->authAgent = $value;
+                    } elseif ($name == "UserAgentVer") {
+                        $this->apiVer = $value;
+                    } elseif ($name == "Content-Length"){
+                        $this->contentLength = intval($value);
+                    } elseif ($name == "Content-Type"){
+                        $this->contentType = $value;
+                    }
+                    $a[strtolower($name)] = $value;
+                }
+                $this->headers = $a;
+            }
+
         }
 
         if(isset($_SERVER['REMOTE_ADDR'])) {
