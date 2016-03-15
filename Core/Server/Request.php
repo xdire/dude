@@ -53,7 +53,7 @@ class Request
     private function _setup() {
 
         // Polyfill function in nginx case
-        if (function_exists('getallheaders'))
+        if (!function_exists('getallheaders'))
         {
 
             foreach ($_SERVER as $name => $value)
