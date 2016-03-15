@@ -79,14 +79,21 @@ class DB {
         if($this->config['type']=='mysql'){
 
             $port='';
-            if(strlen($this->config['port']))
+            $host='';
 
-                $port='port='.$this->config['port'].';';
+            if(strlen($this->config['port']) > 0)
+                $port= 'port=' . $this->config['port'] . ';';
+            if(strlen($this->config['host']) > 0)
+                $host = 'mysql:host=' . $this->config['host'] . ';';
+            elseif(strlen($this->config['sock']) > 0){
+                $host = 'mysql:unix_socket=' . $this->config['sock'] . ';';
+            }
 
             try {
 
                 $this->dbinstance = new \PDO(
-                    'mysql:host=' . $this->config['host'] . ';' .
+                    //'mysql:host=' . $this->config['host'] . ';' .
+                    $host .
                     $port . 'dbname=' . $this->config['instance'],
                     $this->config['user'],
                     $this->config['password']);
