@@ -83,8 +83,7 @@ class Request
                 elseif($name == "CONTENT_TYPE"){
                     $this->contentType = $value;
                     $this->headers["content-type"] = $value;
-                } else
-                    break;
+                }
 
             }
 
