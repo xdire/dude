@@ -1,9 +1,28 @@
 <?php
-/**
- * Created by Anton Repin.
- * Date: 29.05.15
- * Time: 16:44
+// ---------------------------------------------------------------------------------------------------------------------
+/*
+ *                                              ERROR HANDLING SECTION
  */
+// ---------------------------------------------------------------------------------------------------------------------
+/** Exception error handler */
+set_error_handler("__eeh");
+function __eeh($code, $msg, $file, $line ) {
+    throw new ErrorException($msg, $code, 0, $file, $line);
+}
+/** Shutdown Fatal Error Function */
+register_shutdown_function('__sdn');
+function __sdn() {
+    if($error = error_get_last()) {
+        ob_clean();
+        header("HTTP/1.0 500");
+        $file = explode("/", $error['file']);
+        $fileName = strstr( array_pop($file), '.', true);
+        echo '{"errorCode":500,"errorMessage":"Error happened, be calm, send us a report and we\'ll fix it. ('.$fileName.':'.$error['line'].') "}';
+    }
+}
+// ---------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------------------------------
 
 /**
  * @param $string
@@ -24,7 +43,7 @@ function stringStripNumbers($string){
 
 function getview($view,$data=null){
 
-    $path = O_APPPATH.'/View/'.$view.'.php';
+    $path = APPPATH.'/View/'.$view.'.php';
 
     if(file_exists($path)) {
 

@@ -396,7 +396,7 @@ abstract class Kernel {
 
         // Select callable for current method
         if($func = $route->getEventForEventType(self::$routerMethod)) {
-            if (is_callable($func)) {$func(self::$requestObject,$response);}
+            if (is_callable($func)) {$func(self::$requestObject, $response);}
             else {self::doRouteError(500);}
         }
         // If callable is not found for current method then search for record in ALL
