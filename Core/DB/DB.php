@@ -1,22 +1,12 @@
 <?php namespace Xdire\Dude\Core\DB;
 
 use Xdire\Dude\Core\App;
-use Xdire\Dude\Core\Log\Log;
 
 /**
  * Class DB
  * @package Xdire\Dude\Core\DB
  */
 class DB {
-
-    /** @var DBException  */
-    static $DBExceptionDBConnFailed = null;
-    /** @var DBException  */
-    static $DBExceptionNotFound = null;
-    /** @var DBException  */
-    static $DBExceptionReadFailed = null;
-    /** @var DBException  */
-    static $DBExceptionWriteFailed = null;
 
     /** @var array|null */
     private $config = null;
@@ -52,7 +42,6 @@ class DB {
      *
      * - Put there Database instance from config file, for example: "mysql_connection"
      *
-     * @param null $options
      *
      * @throws \Exception
      */
@@ -65,7 +54,7 @@ class DB {
             if(!empty($this->config))
                 $this->constructDBOBJ();
             else
-                throw new \DBException("Database driver can't be instantiated. Failed to load configuration.");
+                throw new DBException("Database driver can't be instantiated. Failed to load configuration.",500);
 
         } else {
 
@@ -79,13 +68,6 @@ class DB {
         }
 
         $this->isTransaction = false;
-
-        if(!isset(self::$DBExceptionNotFound)) {
-            self::$DBExceptionNotFound = new DBException("Data not found", 404);
-            self::$DBExceptionWriteFailed = new DBException("Data write was failed", 500);
-            self::$DBExceptionReadFailed = new DBException("Data read was failed", 500);
-            self::$DBExceptionDBConnFailed = new DBException("Database connection was failed", 500);
-        }
 
     }
 
@@ -120,8 +102,7 @@ class DB {
             } catch (\PDOException $e){
 
                 $this->setError($e->getCode(),$e->getMessage());
-                Log::append('Database connection failed: '.$e->getMessage());
-                throw self::$DBExceptionDBConnFailed;
+                throw new DBException("Database connection was failed", 500);
 
             }
 
@@ -173,14 +154,13 @@ class DB {
                 return $query;
             } else {
                 $this->setError($query->errorCode(),$query->errorInfo());
-                throw self::$DBExceptionNotFound;
+                throw new DBException("Data not found", 404);
             }
 
         } catch (\PDOException $e) {
 
             $this->setError($e->getCode(),$e->getMessage());
-            Log::append('Database query object encounter error: '.$e->getMessage());
-            throw self::$DBExceptionReadFailed;
+            throw new DBException("Data read was failed", 500);
 
         }
 
@@ -209,18 +189,17 @@ class DB {
             }
             else {
                 $this->setError($query->errorCode(),$query->errorInfo());
-                throw self::$DBExceptionWriteFailed;
+                throw new DBException("Data write was failed", 500);
             }
 
         } catch (\PDOException $e) {
 
-            Log::append('Database query object encounter error: ' . $e->getMessage() . ' Query string: ' . $statement);
             $this->setError($e->getCode(),$e->getMessage());
 
             if($e->getCode() == 23000) {
                 throw new DBException("Data can't be written because of duplication",409);
             } else {
-                throw self::$DBExceptionWriteFailed;
+                throw new DBException("Data write was failed", 500);
             }
 
         }
@@ -353,13 +332,12 @@ class DB {
             else
             {
                 $this->setError($query->errorCode(),$query->errorInfo());
-                throw self::$DBExceptionNotFound;
+                throw new DBException("Data not found", 404);
             }
         }
         catch (\PDOException $e){
             $this->setError($e->getCode(),$e->getMessage());
-            Log::append('Database query object encounter error: '.$e->getMessage());
-            throw self::$DBExceptionReadFailed;
+            throw new DBException("Data read was failed", 500);
         }
 
     }
@@ -403,13 +381,12 @@ class DB {
                 return $query->fetch(\PDO::FETCH_ASSOC,\PDO::FETCH_ORI_LAST);
             else {
                 $this->setError($query->errorCode(),$query->errorInfo());
-                throw self::$DBExceptionNotFound;
+                throw new DBException("Data not found", 404);
             }
         }
         catch (\PDOException $e){
             $this->setError($e->getCode(),$e->getMessage());
-            Log::append('Database query object encounter error: '.$e->getMessage());
-            throw self::$DBExceptionReadFailed;
+            throw new DBException("Data read was failed", 500);
         }
 
     }
@@ -501,18 +478,17 @@ class DB {
 
             } else {
                 $this->setError($query->errorCode(),$query->errorInfo());
-                throw self::$DBExceptionWriteFailed;
+                throw new DBException("Data write was failed", 500);
             }
         }
         catch (\PDOException $e) {
 
-            Log::append('Database query object encounter error: '.$e->getMessage().' Query string: '.$statement);
             $this->setError($e->getCode(),$e->getMessage());
 
             if($e->getCode() == 23000){
                 throw new DBException("Data can't be written because of duplication",409);
             } else {
-                throw self::$DBExceptionWriteFailed;
+                throw new DBException("Data write was failed", 500);
             }
 
         }
