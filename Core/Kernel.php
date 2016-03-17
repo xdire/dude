@@ -96,7 +96,7 @@ abstract class Kernel {
             if(!defined("SYSTEM_PROCESS_ID")) define("SYSTEM_PROCESS_ID",null);
             if(!isset(self::$routeFilePath))
                 throw new \Exception("No process file provided for serving local program executable",500);
-            require(self::$routeFilePath);
+            require(self::$processFilePath);
         }
 
         if(session_status() === PHP_SESSION_ACTIVE){
