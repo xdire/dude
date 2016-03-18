@@ -1,8 +1,6 @@
 <?php namespace Xdire\Dude\Core\FTP;
 
-use Xdire\Dude\Core\Log\Log;
-
-final class FTP {
+class FTP {
 
     /** @var string */
     public $server;
@@ -23,8 +21,12 @@ final class FTP {
     protected $files = array();
 
     private $errorObject = null;
+    /** @var int */
     public $error;
+    /** @var string */
     public $errorMessage;
+
+    private $localRootFolder=null;
 
     private $methods = array(
         0=>'ASCII',
@@ -85,6 +87,14 @@ final class FTP {
 
         }
 
+    }
+
+    /**
+     * @param string $localRootFolder
+     */
+    public function setLocalRootFolder($localRootFolder)
+    {
+        $this->localRootFolder = $localRootFolder;
     }
 
     public function seeFilesList(){
@@ -226,16 +236,16 @@ final class FTP {
     }
 
     /**
-     * @param            $directory
-     * @param            $fileDescription
-     * @param bool|false $dontCloseConnection
-     * @throws \Exception
+     * @param               $directory
+     * @param               $fileDescription
+     * @param   bool        $dontCloseConnection
+     * @throws  FTPException
      */
     public function scanDirectoryForFilesLike($directory,$fileDescription,$dontCloseConnection = false){
 
         if($this->connection === null){
             if(!$this->createFTPConn()){
-                throw new \Exception('Cannot establish connection',500);
+                throw new FTPException('Cannot establish connection',500);
             }
         }
 
@@ -372,6 +382,7 @@ final class FTP {
 
     /**
      * @return bool
+     * @throws FTPException
      */
     protected function createFTPConn(){
 
@@ -393,14 +404,20 @@ final class FTP {
                     if(@ftp_login($conn, $this->serverUser, $this->serverPassword)) {
                         $go = true;
                     } else {
-                        Log::append('[FTP_DRIVER] Credentials Cannot connect to: '.$this->server.' with user: '.$this->serverUser);
+
                         $this->errorObject = error_get_last();
                         $this->parseFtpError();
+                        throw new FTPException("FTP Driver cannot connect to: "
+                            .$this->server." with this login: ".$this->serverUser
+                            .". Error: ".$this->error.", Message: ".$this->errorMessage,401);
                     }
                 } else {
-                    Log::append('[FTP_DRIVER] Credentials Cannot connect to: '.$this->server.' with user: '.$this->serverUser);
+
                     $this->errorObject = error_get_last();
                     $this->parseFtpError();
+                    throw new FTPException("FTP Driver cannot connect to: "
+                        .$this->server." with this login: ".$this->serverUser
+                        .". Error: ".$this->error.", Message: ".$this->errorMessage,401);
                 }
 
             }
@@ -417,7 +434,9 @@ final class FTP {
 
         } else {
 
-            Log::append('[FTP_DRIVER] Driver Cannot connect to: '.$this->server.' with user: '.$this->serverUser);
+            throw new FTPException("FTP Driver cannot connect to: "
+                .$this->server." with this login: ".$this->serverUser
+                .". Error: 500, Message: Connection problems",500);
 
         }
 
@@ -425,9 +444,10 @@ final class FTP {
     }
 
     /**
-     * @param array $file
+     * @param     $file
      * @param int $mode
-     * @returns bool
+     * @return bool
+     * @throws FTPException
      */
     protected function getFile($file,$mode = 0){
 
@@ -446,17 +466,23 @@ final class FTP {
                         $transferMode = FTP_ASCII;
                         break;
                 }
-                $localFile = O_ROOTPATH . '/' . $file['local'];
 
-                if(strlen($file['remote'])>0) {
+                if(isset($this->localRootFolder))
+                    $localFile = $this->localRootFolder . '/' . $file['local'];
+                else
+                    $localFile = $file['local'];
+
+                if(strlen($file['remote']) > 0) {
 
                     if (ftp_get($this->connection, $localFile, $file['remote'], $transferMode)) {
                         return true;
+                    } else {
+                        throw new FTPException('Failed to execute getFile function : '.$this->server, 500);
                     }
 
                 } else {
 
-                    Log::append('[FTP_DRIVER] Failed to use getFile function, remote File is not defined in scheme: '.$this->server);
+                    throw new FTPException('Failed to use getFile function, remote File is not defined in scheme: '.$this->server,404);
 
                 }
 
@@ -464,18 +490,25 @@ final class FTP {
 
         } else {
 
-            Log::append('[FTP_DRIVER] Failed to use getFile function, connection is not defined for current server: '.$this->server);
+            throw new FTPException('Failed to use getFile function, connection is not available: '.$this->server,500);
 
         }
 
         return false;
     }
 
+    /**
+     * @param   string      $file
+     * @param   int         $mode
+     * @return  bool
+     * @throws  FTPException
+     */
     protected function putFile($file,$mode = 0){
 
         if($this->connection !== null){
 
-            if(isset($file['remote'])){
+            if(isset($file['remote'])) {
+
                 switch ($mode) {
                     case 0:
                         $transferMode = FTP_ASCII;
@@ -487,29 +520,41 @@ final class FTP {
                         $transferMode = FTP_ASCII;
                         break;
                 }
-                $localFile = O_ROOTPATH . '/' . $file['local'];
+
+                if(isset($this->localRootFolder))
+                    $localFile = $this->localRootFolder . '/' . $file['local'];
+                else
+                    $localFile = $file['local'];
 
                 if (ftp_put($this->connection, $file['remote'], $localFile, $transferMode)) {
                     return true;
+                } else {
+                    throw new FTPException('Failed to execute putFile function : '.$this->server, 500);
                 }
+
             }
 
         } else {
 
-            Log::append('[FTP_DRIVER] Failed to use getFile function, connection is not defined for current server: '.$this->server);
+            throw new FTPException('Failed to use getFile function, connection is not available: '.$this->server,500);
 
         }
 
         return false;
     }
+
     /**
      * @param $file
      * @param $folder
-     * @return null | string : New File Name or Null
+     * @return null|string
+     * @throws FTPException
      */
     public function unZipFile($file,$folder){
 
-        $localPath = O_ROOTPATH.'/'.$file;
+        if(isset($this->localRootFolder))
+            $localPath = $this->localRootFolder . '/' . $file;
+        else
+            $localPath = $file;
 
         if(file_exists($localPath)){
 
@@ -519,19 +564,24 @@ final class FTP {
 
             if ($unzip) {
                 $name = $zip->getNameIndex(0);
-                $zip->extractTo(O_ROOTPATH.$folder.'/');
+                $zip->extractTo($folder.'/');
                 $zip->close();
             }
             else
             {
-                Log::append('[FTP_DRIVER] Failed to use unzip file '.$file);
+                throw new FTPException('Failed to use unzip file: '.$file,500);
             }
 
             $oldName = explode(".",$file);
             $newName = $oldName[0].'.txt';
 
-            rename (O_ROOTPATH.$folder.'/'.$name , O_ROOTPATH.$folder.'/'.$newName);
-            unlink (O_ROOTPATH.$folder.'/'.$file);
+            if(isset($this->localRootFolder)) {
+                rename($this->localRootFolder.'/'.$folder . '/' . $name, $this->localRootFolder.'/'.$folder . '/' . $newName);
+                unlink($this->localRootFolder.'/'.$folder . '/' . $file);
+            } else {
+                rename($folder . '/' . $name, $folder . '/' . $newName);
+                unlink($folder . '/' . $file);
+            }
 
             return $newName;
 
@@ -541,9 +591,6 @@ final class FTP {
 
     }
 
-    /**
-     * void
-     */
     protected function closeConnection(){
         if(isset($this->connection)) {
             if(ftp_close($this->connection))
