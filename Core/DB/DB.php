@@ -346,6 +346,7 @@ class DB {
     |       > SQL string: SELECT FROM table WHERE :variableName --> [ ':variableName', $variableName ]
     |       > SQL string: SELECT FROM table WHERE variable = ? AND variable2 = ? --> [ $variable, $variable2 ]
     |
+    |   When SELECT by non-unique columns don't forget to add "LIMIT 1" to avoid overhead of database.
     /* ------------------------------------------------------------------------------------------------------*/
     /**
      * @param string $statement        SQL SELECT query
@@ -462,7 +463,7 @@ class DB {
 
             } else {
                 $this->setError($query->errorCode(),$query->errorInfo());
-                throw new DBException("Data write was failed", 500);
+                throw new DBException($e->getMessage(), $e->getCode());
             }
         }
         catch (\PDOException $e) {
@@ -472,7 +473,8 @@ class DB {
             if($e->getCode() == 23000){
                 throw new DBException("Data can't be written because of duplication",409);
             } else {
-                throw new DBException("Data write was failed", 500);
+                die($e->getMessage());
+                throw new DBException($e->getMessage(), $e->getCode());
             }
 
         }
