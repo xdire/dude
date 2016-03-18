@@ -10,8 +10,6 @@ class DB {
 
     /** @var array|null */
     private $config = null;
-    /** @var array|null */
-    private $options = null;
 
     /** @var \PDO */
     protected $dbinstance = null;
@@ -279,29 +277,19 @@ class DB {
     |
     /* ------------------------------------------------------------------------------------------------------*/
     /**
-     * @param null $statement
-     * @param null $params
-     * @param bool $compressResult
+     * @param string $statement        SQL SELECT query
+     * @param array $params            OPTIONAL Params for query
+     * @param bool $compressResult     Return SplFixedArray instead of usual array
      * @return array|\SplFixedArray
      * @throws DBException
      */
-    public function select($statement,$params=null,$compressResult=false) {
+    public function select($statement, array $params = [], $compressResult=false) {
         $this->resetError();
 
         try {
 
             $query = $this->dbinstance->prepare($statement);
-            $result=null;
-
-            if (isset($params) && isset($params[0])) {
-
-                foreach ($params as $p) {
-                    $result = $query->execute($p);
-                }
-
-            } else {
-                $result=$query->execute();
-            }
+            $result = $query->execute($params);
 
             if($result) {
 
@@ -358,35 +346,25 @@ class DB {
     |       > SQL string: SELECT FROM table WHERE :variableName --> [ ':variableName', $variableName ]
     |       > SQL string: SELECT FROM table WHERE variable = ? AND variable2 = ? --> [ $variable, $variable2 ]
     |
+    |   When SELECT by non-unique columns don't forget to add "LIMIT 1" to avoid overhead of database.
     /* ------------------------------------------------------------------------------------------------------*/
     /**
-     * @param null $statement
-     * @param null $params
-     * @return mixed|null
+     * @param string $statement        SQL SELECT query
+     * @param array $params            OPTIONAL Params for query
+     * @return array|null              Associative array if found row, NULL otherwise
      * @throws \Xdire\Dude\Core\DB\DBException
      */
-    public function selectRow($statement=null,$params=null) {
+    public function selectRow($statement, array $params = []) {
 
         $this->resetError();
 
         try {
-
             $query = $this->dbinstance->prepare($statement);
-            $result=null;
+            $result = $query->execute($params);
 
-            if (isset($params) && isset($params[0])) {
-
-                foreach ($params as $p) {
-                    $result = $query->execute($p);
-                }
-
+            if($result) {
+                return $query->fetch(\PDO::FETCH_ASSOC);
             } else {
-                $result=$query->execute();
-            }
-
-            if($result)
-                return $query->fetch(\PDO::FETCH_ASSOC,\PDO::FETCH_ORI_LAST);
-            else {
                 $this->setError($query->errorCode(),$query->errorInfo());
                 throw new DBException("Data not found", 404);
             }
@@ -485,7 +463,7 @@ class DB {
 
             } else {
                 $this->setError($query->errorCode(),$query->errorInfo());
-                throw new DBException("Data write was failed", 500);
+                throw new DBException($e->getMessage(), $e->getCode());
             }
         }
         catch (\PDOException $e) {
@@ -495,7 +473,8 @@ class DB {
             if($e->getCode() == 23000){
                 throw new DBException("Data can't be written because of duplication",409);
             } else {
-                throw new DBException("Data write was failed", 500);
+                die($e->getMessage());
+                throw new DBException($e->getMessage(), $e->getCode());
             }
 
         }
