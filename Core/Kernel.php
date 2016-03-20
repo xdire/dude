@@ -396,12 +396,24 @@ abstract class Kernel {
 
         // Select callable for current method
         if($func = $route->getEventForEventType(self::$routerMethod)) {
-            if (is_callable($func)) {$func(self::$requestObject, $response);}
+            if (is_callable($func)) {
+                try {
+                    $func(self::$requestObject, $response);
+                } catch (\Exception $e){
+                    self::doRouteError($e->getCode());
+                }
+            }
             else {self::doRouteError(500);}
         }
         // If callable is not found for current method then search for record in ALL
         elseif ($func = $route->getEventForEventType(0)){
-            if (is_callable($func)) {$func(self::$requestObject,$response);}
+            if (is_callable($func)) {
+                try {
+                    $func(self::$requestObject, $response);
+                } catch (\Exception $e){
+                    self::doRouteError($e->getCode());
+                }
+            }
             else {self::doRouteError(500);}
         }
         // Produce error if no methods found
@@ -423,19 +435,22 @@ abstract class Kernel {
                 break;
 
             case 401:
-                setSessionError(401,'Unauthorized operation cannot be completed');
+                //setSessionError(401,'Unauthorized operation cannot be completed');
                 header('X-PHP-Response-Code', true, 401);
-                App::routeTo('/');
+
                 break;
 
             case 500:
-                setSessionError(500,'Server error');
+                //setSessionError(500,'Server error');
                 header('X-PHP-Response-Code', true, 500);
-                App::routeTo('/');
+
+                break;
+            default:
+                header('X-PHP-Response-Code', true, $code);
                 break;
 
-
         }
+
         ob_end_flush();
 
     }

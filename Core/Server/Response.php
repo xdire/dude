@@ -7,10 +7,13 @@ class Response
     private $content = "";
 
     /**
+     * Flush $content to connection
+     * function will erase buffer before exec flush
+     *
      * @param int $code
      * @param mixed $content
      */
-    public function send($code,$content) {
+    public function send($code, $content) {
 
         $this->code = $code;
         $this->content = $content;
@@ -23,19 +26,26 @@ class Response
 
     }
 
+    /**
+     * Flush buffer to connection
+     */
     public function flush(){
         ob_flush();
     }
 
     /**
+     * FLush $content to connection and terminate program
+     * some post operations will be executed in Kernel after this method will throw an Exception
+     *
      * @param int $code
-     * @param mixed | null $text
+     * @param string | null $content
+     * @throws \Exception
      */
-    public function end($code,$text=null){
+    public function end($code, $content = null){
         header("HTTP/1.0 ".$code);
-        if(!empty($text)) echo $text;
+        if(!empty($content)) echo $content;
         ob_end_flush();
-        exit();
+        throw new \Exception("Program exited",$code);
     }
 
     /**

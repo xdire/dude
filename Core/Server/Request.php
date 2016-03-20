@@ -135,6 +135,12 @@ class Request
         return null;
     }
 
+    /**
+     * Return path variable which was assigned with *mark
+     *
+     * @param   string  $parameter
+     * @return  string | null
+     */
     public function getPathParameter($parameter){
         if(isset($this->parameters[$parameter])) {
             return $this->parameters[$parameter];

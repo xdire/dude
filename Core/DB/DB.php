@@ -16,14 +16,7 @@ class DB {
 
     /** @var int|null  */
     public $lastInsertId = null;
-    /** @var bool */
-    public $error = false;
-    /** @var string|null */
-    public $errorCode = 0;
-    /** @var string|null */
-    public $errorInfo = null;
-    /** @var string|null */
-    public $errorFullInfo = null;
+
     /** @var int */
     public $rowsAffected = 0;
 
@@ -40,7 +33,6 @@ class DB {
      *
      * - Put there Database instance from config file, for example: "mysql_connection"
      *
-     *
      * @throws \Exception
      */
     function __construct($conf_instance=null) {
@@ -52,7 +44,10 @@ class DB {
             if(!empty($this->config))
                 $this->constructDBOBJ();
             else
-                throw new DBException("Database driver can't be instantiated. Failed to load configuration.",500);
+                throw new DBException("Database driver can't be instantiated. Failed to load configuration.",
+                    500,
+                    "DB Connection failed",
+                    500);
 
         } else {
 
@@ -90,7 +85,6 @@ class DB {
             try {
 
                 $this->dbinstance = new \PDO(
-                    //'mysql:host=' . $this->config['host'] . ';' .
                     $host .
                     $port . 'dbname=' . $this->config['instance'],
                     $this->config['user'],
@@ -105,34 +99,18 @@ class DB {
                 //$this->dbinstance->setAttribute(\PDO::ATTR_PERSISTENT, true);
 
             } catch (\PDOException $e){
-
-                $this->setError($e->getCode(),$e->getMessage());
-                throw new DBException("Database connection was failed", 500);
-
+                throw new DBException("Database connection was failed", 500, $e->getMessage(), $e->getCode());
             }
 
         }
     }
 
-    protected function resetError() {
-        $this->error = false;
-        $this->errorCode = 0;
-        $this->errorInfo = "";
-    }
-
-    protected function setError($code,$message) {
-        $this->error = true;
-        $this->errorCode = $code;
-        $this->errorInfo = $message;
-    }
-
     protected function resetParams() {
-        $this->lastInsertId = null;
         $this->rowsAffected = 0;
     }
     /* -------------------------------------------------------------------------------------------------------
     |
-    |   EXTENDABLE
+    |   EXTENDABLE WITH DB Class
     |
     |
     |
@@ -143,11 +121,10 @@ class DB {
      *
      * @param $statement
      * @return \PDOStatement
-     * @throws DBException
+     * @throws DBReadException
+     * @throws DBNotFoundException
      */
     protected function selectBegin($statement) {
-
-        $this->resetError();
 
         try {
 
@@ -158,14 +135,12 @@ class DB {
             if($result) {
                 return $query;
             } else {
-                $this->setError($query->errorCode(),$query->errorInfo());
-                throw new DBException("Data not found", 404);
+                throw new DBNotFoundException("Data not found", 404,$query->errorInfo(),$query->errorCode());
             }
 
         } catch (\PDOException $e) {
 
-            $this->setError($e->getCode(),$e->getMessage());
-            throw new DBException("Data read was failed", 500);
+            throw new DBReadException("Data read was failed", 500,$e->getMessage(),$e->getCode());
 
         }
 
@@ -177,34 +152,32 @@ class DB {
      *
      * @param $statement
      * @return \PDOStatement
-     * @throws DBException
+     * @throws DBWriteException
+     * @throws DBDuplicationException
      */
     protected function writeBegin($statement) {
 
-        $this->resetError();
-        $this->resetParams();
+        $this->rowsAffected = 0;
+
         try {
 
             $query = $this->dbinstance->prepare($statement);
             $result = $query->execute();
             if ($result) {
-                $this->lastInsertId=$this->dbinstance->lastInsertId();
                 $this->rowsAffected=$query->rowCount();
                 return $query;
             }
             else {
-                $this->setError($query->errorCode(),$query->errorInfo());
-                throw new DBException("Data write was failed", 500);
+                throw new DBWriteException("Data write was failed", 500, $query->errorInfo(), $query->errorCode());
             }
 
         } catch (\PDOException $e) {
 
-            $this->setError($e->getCode(),$e->getMessage());
-
             if($e->getCode() == 23000) {
-                throw new DBException("Data can't be written because of duplication",409);
+                throw new DBDuplicationException("Data can't be written because of duplication", 409,
+                    $e->getMessage(),$e->getCode());
             } else {
-                throw new DBException("Data write was failed", 500);
+                throw new DBWriteException("Data write was failed", 500, $e->getMessage(), $e->getCode());
             }
 
         }
@@ -223,6 +196,7 @@ class DB {
         if($row = $q->fetch(2)) return $row;
         return null;
     }
+
     /* -------------------------------------------------------------------------------------------------------
     |
     |   TRANSACTIONS
@@ -280,11 +254,11 @@ class DB {
      * @param string $statement        SQL SELECT query
      * @param array $params            OPTIONAL Params for query
      * @param bool $compressResult     Return SplFixedArray instead of usual array
-     * @return array|\SplFixedArray
+     * @return array | \SplFixedArray
      * @throws DBException
+     * @throws DBNotFoundException
      */
     public function select($statement, array $params = [], $compressResult=false) {
-        $this->resetError();
 
         try {
 
@@ -305,8 +279,8 @@ class DB {
                     $return = new \SplFixedArray(2000);
                     $i = 0;
                     $k = 0;
-                    $fa = \PDO::FETCH_ASSOC;
-                    while ($row = $query->fetch($fa))
+
+                    while ($row = $query->fetch(\PDO::FETCH_ASSOC))
                     {
                         $return[$k] = $row;
                         $i++;
@@ -326,13 +300,11 @@ class DB {
             }
             else
             {
-                $this->setError($query->errorCode(),$query->errorInfo());
-                throw new DBException("Data not found", 404);
+                throw new DBNotFoundException("Data not found", 404, $query->errorInfo(), $query->errorCode());
             }
         }
-        catch (\PDOException $e){
-            $this->setError($e->getCode(),$e->getMessage());
-            throw new DBException("Data read was failed", 500);
+        catch (\PDOException $e) {
+            throw new DBReadException("Data read was failed", 500, $e->getMessage(), $e->getCode());
         }
 
     }
@@ -356,8 +328,6 @@ class DB {
      */
     public function selectRow($statement, array $params = []) {
 
-        $this->resetError();
-
         try {
             $query = $this->dbinstance->prepare($statement);
             $result = $query->execute($params);
@@ -365,13 +335,11 @@ class DB {
             if($result) {
                 return $query->fetch(\PDO::FETCH_ASSOC);
             } else {
-                $this->setError($query->errorCode(),$query->errorInfo());
-                throw new DBException("Data not found", 404);
+                throw new DBNotFoundException("Data not found", 404, $query->errorInfo(), $query->errorCode());
             }
         }
-        catch (\PDOException $e){
-            $this->setError($e->getCode(),$e->getMessage());
-            throw new DBException("Data read was failed", 500);
+        catch (\PDOException $e) {
+            throw new DBReadException("Data read was failed", 500, $e->getMessage(), $e->getCode());
         }
 
     }
@@ -424,16 +392,14 @@ class DB {
      */
     private function insertExec($statement,$params) {
 
-        $this->resetError();
-        $this->resetParams();
-
         try {
+
             $result=false;
             $query = $this->dbinstance->prepare($statement);
 
             if (isset($params) && isset($params[0])) {
 
-                foreach($params as $p){
+                foreach($params as $p) {
                     $result = $query->execute($p);
                 }
 
@@ -443,12 +409,12 @@ class DB {
 
             if($result) {
 
-                $this->lastInsertId=$this->dbinstance->lastInsertId();
-                $this->rowsAffected=$query->rowCount();
-
+                /*
+                 *  Count Rowset for multiple result after query
+                 */
                 if($query->nextRowset()) {
 
-                    $rowset=1;
+                    $rowset = 1;
 
                     do {
                         $rowset++;
@@ -456,53 +422,36 @@ class DB {
 
                     $this->rowsAffected = $rowset;
 
+                } else {
+                    $this->rowsAffected=$query->rowCount();
                 }
 
                 $query = null;
                 return true;
 
             } else {
-                $this->setError($query->errorCode(),$query->errorInfo());
-                throw new DBException($e->getMessage(), $e->getCode());
+                throw new DBWriteException("Data write was failed", 500, $query->errorInfo(), $query->errorCode());
             }
         }
         catch (\PDOException $e) {
 
-            $this->setError($e->getCode(),$e->getMessage());
-
             if($e->getCode() == 23000){
-                throw new DBException("Data can't be written because of duplication",409);
+                throw new DBDuplicationException("Data can't be written because of duplication", 409,
+                    $e->getMessage(), $e->getCode());
             } else {
-                die($e->getMessage());
-                throw new DBException($e->getMessage(), $e->getCode());
+                throw new DBWriteException("Data write was failed", 500, $e->getMessage(), $e->getCode());
             }
 
         }
 
     }
 
-    /**
-     * @return boolean
-     */
-    public function isError()
-    {
-        return $this->error;
+    public function getLastInsertId(){
+        return $this->dbinstance->lastInsertId();
     }
 
-    /**
-     * @return null|string
-     */
-    public function getErrorCode()
-    {
-        return $this->errorCode;
-    }
-
-    /**
-     * @return null|string
-     */
-    public function getErrorInfo()
-    {
-        return $this->errorInfo;
+    public function getRowsAffected(){
+        return $this->rowsAffected;
     }
 
 }
