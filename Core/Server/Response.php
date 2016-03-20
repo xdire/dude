@@ -2,9 +2,22 @@
 
 class Response
 {
-
+    /**
+     * @var int
+     */
     private $code = 200;
+    /**
+     * @var string
+     */
     private $content = "";
+
+    /**
+     * Response constructor.
+     */
+    function __construct()
+    {
+
+    }
 
     /**
      * Flush $content to connection
@@ -41,11 +54,17 @@ class Response
      * @param string | null $content
      * @throws \Exception
      */
-    public function end($code, $content = null){
+    public function end($code, $content = null) {
+        // Clean
+        ob_clean();
+        // Process
         header("HTTP/1.0 ".$code);
-        if(!empty($content)) echo $content;
-        ob_end_flush();
-        throw new \Exception("Program exited",$code);
+        if(!empty($content))
+            echo $content;
+        // Flush buffer
+        ob_flush();
+        // Throw back to Kernel
+        throw new \Exception("Operation ended",$code);
     }
 
     /**

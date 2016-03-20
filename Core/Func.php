@@ -18,7 +18,9 @@ function __sdn() {
         $file = explode("/", $error['file']);
         $fileName = strstr( array_pop($file), '.', true);
         echo '{"errorCode":500,"errorMessage":"Error happened, be calm, send us a report and we\'ll fix it. ('.$fileName.':'.$error['line'].') "}';
+        ob_flush();
     }
+    ob_end_clean();
 }
 // ---------------------------------------------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------------------------------------------

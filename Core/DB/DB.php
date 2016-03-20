@@ -132,15 +132,23 @@ class DB {
             $result = null;
 
             $result = $query->execute();
+
             if($result) {
+
+                if($query->rowCount() == 0)
+                    throw new DBNotFoundException("Data not found", 404, $query->errorInfo(), $query->errorCode());
+
                 return $query;
+
             } else {
-                throw new DBNotFoundException("Data not found", 404,$query->errorInfo(),$query->errorCode());
+
+                throw new DBNotFoundException("Data not found", 404, $query->errorInfo(), $query->errorCode());
+
             }
 
         } catch (\PDOException $e) {
 
-            throw new DBReadException("Data read was failed", 500,$e->getMessage(),$e->getCode());
+            throw new DBReadException("Data read was failed", 500, $e->getMessage(), $e->getCode());
 
         }
 
@@ -258,7 +266,7 @@ class DB {
      * @throws DBException
      * @throws DBNotFoundException
      */
-    public function select($statement, array $params = [], $compressResult=false) {
+    public function select($statement, array $params = null, $compressResult=false) {
 
         try {
 
@@ -266,6 +274,9 @@ class DB {
             $result = $query->execute($params);
 
             if($result) {
+
+                if($query->rowCount() == 0)
+                    throw new DBNotFoundException("Data not found", 404, $query->errorInfo(), $query->errorCode());
 
                 if (!$compressResult) {
                     return $query->fetchAll();
@@ -326,7 +337,7 @@ class DB {
      * @return array|null              Associative array if found row, NULL otherwise
      * @throws \Xdire\Dude\Core\DB\DBException
      */
-    public function selectRow($statement, array $params = []) {
+    public function selectRow($statement, array $params = null) {
 
         try {
             $query = $this->dbinstance->prepare($statement);

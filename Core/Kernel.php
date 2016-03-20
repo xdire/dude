@@ -10,9 +10,6 @@ abstract class Kernel {
 
     protected static $config=array();
 
-    // Default Log path
-    protected static $logpath='Data/Log';
-
     /** @var string|null */
     protected static $routeFilePath = null;
     /** @var string|null */
@@ -387,7 +384,13 @@ abstract class Kernel {
 
         // execute Middleware if one exists
         if($middleware = $route->getMiddleware()) {
-            $middleware->start(self::$requestObject,$response);
+            try {
+                $middleware->start(self::$requestObject,$response);
+            } catch (\Exception $e) {
+                self::doRouteError($e->getCode());
+                ob_clean();
+                return;
+            }
         }
 
         // ------------------------------------------------------------------------------------
@@ -399,7 +402,7 @@ abstract class Kernel {
             if (is_callable($func)) {
                 try {
                     $func(self::$requestObject, $response);
-                } catch (\Exception $e){
+                } catch (\Exception $e) {
                     self::doRouteError($e->getCode());
                 }
             }
@@ -410,7 +413,7 @@ abstract class Kernel {
             if (is_callable($func)) {
                 try {
                     $func(self::$requestObject, $response);
-                } catch (\Exception $e){
+                } catch (\Exception $e) {
                     self::doRouteError($e->getCode());
                 }
             }
@@ -422,11 +425,14 @@ abstract class Kernel {
         }
 
         // Clean all data which echoed to output stream not by Response->send()
-        ob_end_clean();
+        //ob_end_flush();
+        ob_clean();
 
     }
 
     private static function doRouteError($code) {
+
+        echo 'route error';
 
         switch($code) {
 
@@ -451,7 +457,7 @@ abstract class Kernel {
 
         }
 
-        ob_end_flush();
+        ob_clean();
 
     }
 
