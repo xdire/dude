@@ -1,12 +1,4 @@
-<?php
-/**
- * Created by Anton Repin
- * User: xdire
- * Date: 19.05.15
- * Time: 9:54
- */
-
-namespace Xdire\Dude\Core;
+<?php namespace Xdire\Dude\Core;
 
 use Xdire\Dude\Core\Face\Controller;
 use Xdire\Dude\Core\Face\Middleware;
@@ -17,8 +9,6 @@ use Xdire\Dude\Core\Server\Response;
 final class App extends Kernel {
 
     protected function __construct(){}
-    /** @var null | User */
-    public static $user = null;
 
     /**
      * Get some parameter from config, if it exists
@@ -39,7 +29,7 @@ final class App extends Kernel {
      * Calling Controller within application
      *
      * ------------------------
-     * @param string $statement
+     * @param Controller $controller
      *  - address of the controller in the App/Controllers
      *  + controller need to be implementing \Xdire\Dude\Core\Face\Controller Interface
      * ------------------------
@@ -130,6 +120,13 @@ final class App extends Kernel {
 
     public static function disableRouter(){
         self::$routerEnabled=false;
+    }
+
+    /**
+     * @return int|string
+     */
+    public static function getEnvironment(){
+        return self::$env;
     }
 
 }

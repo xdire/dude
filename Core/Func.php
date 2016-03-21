@@ -7,6 +7,13 @@
 /** Exception error handler */
 set_error_handler("__eeh");
 function __eeh($code, $msg, $file, $line ) {
+
+    if(strpos(\Xdire\Dude\Core\App::getEnvironment(),'dev') !== false) {
+        echo "Error produced by application: \n";
+        echo "Code: $code \nMessage: $msg \nFile: $file \nLine: $line";
+        ob_flush();
+    }
+
     throw new ErrorException($msg, $code, 0, $file, $line);
 }
 /** Shutdown Fatal Error Function */

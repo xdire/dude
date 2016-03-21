@@ -8,7 +8,10 @@ use Xdire\Dude\Core\Server\RouterPathObject;
 
 abstract class Kernel {
 
+    /** @var array */
     protected static $config=array();
+    /** @var string | int */
+    protected static $env = "";
 
     /** @var string|null */
     protected static $routeFilePath = null;
@@ -65,9 +68,14 @@ abstract class Kernel {
      * INIT Method - used in /app.php as method which init all framework to start
      *
      * @param array $config
+     * @param mixed | null $env
+     *
      * @throws \Exception
      */
-    public static function init(Array $config) {
+    public static function init(Array $config, $env = null) {
+
+        // Set environment
+        if(isset($env)) self::$env = $env;
 
         // Assign current config file
         self::$config = $config;
@@ -437,21 +445,22 @@ abstract class Kernel {
         switch($code) {
 
             case 404:
+
                 header('X-PHP-Response-Code', true, 404);
                 break;
 
             case 401:
-                //setSessionError(401,'Unauthorized operation cannot be completed');
-                header('X-PHP-Response-Code', true, 401);
 
+                header('X-PHP-Response-Code', true, 401);
                 break;
 
             case 500:
-                //setSessionError(500,'Server error');
-                header('X-PHP-Response-Code', true, 500);
 
+                header('X-PHP-Response-Code', true, 500);
                 break;
+
             default:
+
                 header('X-PHP-Response-Code', true, $code);
                 break;
 

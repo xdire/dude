@@ -8,20 +8,24 @@ use Xdire\Dude\Core\App;
  */
 class DB {
 
+    /** @var DBManager */
+    private static $DBManager = null;
+
     /** @var array|null */
     private $config = null;
 
     /** @var \PDO */
     protected $dbinstance = null;
 
-    /** @var int|null  */
-    public $lastInsertId = null;
+    /** @var int */
+    private $rowsSelected = 0;
 
     /** @var int */
-    public $rowsAffected = 0;
+    private $rowsAffected = 0;
 
     /** @var bool */
     private $isTransaction;
+
     /* -------------------------------------------------------------------------------------------------------
     |
     |   DB CLASS CONSTRUCTOR AND SERVICE FUNCTIONS
@@ -29,80 +33,116 @@ class DB {
     /* ------------------------------------------------------------------------------------------------------*/
     /**
      * DB constructor.
-     * @param null $conf_instance
-     *
-     * - Put there Database instance from config file, for example: "mysql_connection"
+     * @param string|null $configInstance - Database instance from config file, for example: "mysql_connection"
+     * @param bool $useReusableConnection - Set this to true to use DBManager to hold DBConnections for reuse
      *
      * @throws \Exception
      */
-    function __construct($conf_instance=null) {
+    function __construct($configInstance = null, $useReusableConnection = true) {
 
-        if(!isset($conf_instance)) {
+        $this->isTransaction = false;
+
+        if(!isset($configInstance)) {
 
             # Apply parameters from config
             $this->config = App::getConfig('mysql_connection');
-            if(!empty($this->config))
-                $this->constructDBOBJ();
-            else
-                throw new DBException("Database driver can't be instantiated. Failed to load configuration.",
-                    500,
-                    "DB Connection failed",
-                    500);
+            if(isset($this->config)) {
+                $this->constructDBOBJ($useReusableConnection);
+                return;
+            }
 
         } else {
 
             # Apply parameters from custom config instance
-            $conf_cred = App::getConfig($conf_instance);
-            if(isset($conf_cred)){
+            $conf_cred = App::getConfig($configInstance);
+            if(isset($conf_cred)) {
                 $this->config = $conf_cred;
-                $this->constructDBOBJ();
+                $this->constructDBOBJ($useReusableConnection);
+                return;
             }
 
         }
 
-        $this->isTransaction = false;
+        throw new DBException("Database driver can't be instantiated. Failed to load configuration.",
+            500, "DB Connection failed", 500);
 
     }
 
     /**
+     * Construct PDO Object from DBManager or from parameters
+     * @param bool $useReusableConnection
+     *
      * @throws DBException
      */
-    private function constructDBOBJ() {
+    private function constructDBOBJ($useReusableConnection) {
 
-        if($this->config['type']=='mysql'){
+        if($this->config['type']=='mysql') {
 
-            $port='';
-            $host='';
+            $port = isset($this->config['port']) ? $this->config['port'] : '';
+            $host = isset($this->config['host']) ? $this->config['host'] : '';
+            $sock = isset($this->config['sock']) ? $this->config['sock'] : '';
+            $inst = isset($this->config['instance']) ? $this->config['instance'] : '';
 
-            if(strlen($this->config['port']) > 0)
-                $port= 'port=' . $this->config['port'] . ';';
-            if(strlen($this->config['host']) > 0)
-                $host = 'mysql:host=' . $this->config['host'] . ';';
-            elseif(strlen($this->config['sock']) > 0){
+            // Prepare standard variables
+            $port = 'port=' . $port . ';';
+            $host = 'mysql:host=' . $host . ';';
+
+            // If instance will use unix-socket file
+            if (strlen($sock) > 0) {
                 $host = 'mysql:unix_socket=' . $this->config['sock'] . ';';
             }
 
-            try {
+            if($useReusableConnection) {
 
-                $this->dbinstance = new \PDO(
-                    $host .
-                    $port . 'dbname=' . $this->config['instance'],
-                    $this->config['user'],
-                    $this->config['password']);
+                if(!isset(self::$DBManager)) {
+                    self::$DBManager = new DBManager();
+                }
 
-                $this->dbinstance->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+                if($i = self::$DBManager->getDbInstance($host,$port,$inst)) {
+                    $this->dbinstance = &$i;
+                    return;
+                }
 
-                // Disabled persistence connections attribute
-                // need to be reused for remote servers with
-                // using register_shutdown_function()
-                //
-                //$this->dbinstance->setAttribute(\PDO::ATTR_PERSISTENT, true);
+                $this->_constructDBOBJ($host,$port,$inst,$this->config['user'],$this->config['password']);
 
-            } catch (\PDOException $e){
-                throw new DBException("Database connection was failed", 500, $e->getMessage(), $e->getCode());
+                self::$DBManager->addInstance($host,$port,$inst,$this->dbinstance);
+
+            } else {
+
+                $this->_constructDBOBJ($host,$port,$inst,$this->config['user'],$this->config['password']);
+
             }
 
         }
+
+    }
+
+    /**
+     * Create PDO Object from parameters
+     *
+     * @param string $host
+     * @param string $port
+     * @param string $instance
+     * @param string $user
+     * @param string $pwd
+     * @throws DBException
+     */
+    private function _constructDBOBJ($host,$port,$instance,$user,$pwd) {
+
+        try {
+
+            $this->dbinstance = new \PDO(
+                $host .
+                $port . 'dbname=' . $instance,
+                $user,
+                $pwd);
+
+            $this->dbinstance->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+        } catch (\PDOException $e){
+            throw new DBException("Database connection was failed", 500, $e->getMessage(), $e->getCode());
+        }
+
     }
 
     protected function resetParams() {
@@ -129,14 +169,11 @@ class DB {
         try {
 
             $query = $this->dbinstance->prepare($statement);
-            $result = null;
 
             $result = $query->execute();
+            $this->rowsSelected = $query->rowCount();
 
             if($result) {
-
-                if($query->rowCount() == 0)
-                    throw new DBNotFoundException("Data not found", 404, $query->errorInfo(), $query->errorCode());
 
                 return $query;
 
@@ -272,11 +309,9 @@ class DB {
 
             $query = $this->dbinstance->prepare($statement);
             $result = $query->execute($params);
+            $this->rowsSelected = $query->rowCount();
 
             if($result) {
-
-                if($query->rowCount() == 0)
-                    throw new DBNotFoundException("Data not found", 404, $query->errorInfo(), $query->errorCode());
 
                 if (!$compressResult) {
                     return $query->fetchAll();
@@ -340,14 +375,17 @@ class DB {
     public function selectRow($statement, array $params = null) {
 
         try {
+
             $query = $this->dbinstance->prepare($statement);
             $result = $query->execute($params);
+            $this->rowsSelected = $query->rowCount();
 
             if($result) {
                 return $query->fetch(\PDO::FETCH_ASSOC);
             } else {
                 throw new DBNotFoundException("Data not found", 404, $query->errorInfo(), $query->errorCode());
             }
+
         }
         catch (\PDOException $e) {
             throw new DBReadException("Data read was failed", 500, $e->getMessage(), $e->getCode());
@@ -371,8 +409,10 @@ class DB {
      * @return bool
      */
     public function insert($statement=null,$params=null) {
+
         $this->rowsAffected=0;
         return $this->insertExec($statement,$params);
+
     }
     /**
      * @param null $statement
@@ -380,8 +420,10 @@ class DB {
      * @return bool
      */
     public function update($statement=null,$params=null) {
+
         $this->rowsAffected=0;
         return $this->insertExec($statement,$params);
+
     }
     /**
      * @param null $statement
@@ -389,6 +431,7 @@ class DB {
      * @return bool
      */
     public function delete($statement=null,$params=null) {
+
         $this->rowsAffected=0;
         $result=$this->insertExec($statement,$params);
         return ($result && $this->rowsAffected>0)? true:false;
@@ -433,9 +476,8 @@ class DB {
 
                     $this->rowsAffected = $rowset;
 
-                } else {
+                } else
                     $this->rowsAffected=$query->rowCount();
-                }
 
                 $query = null;
                 return true;
@@ -457,12 +499,52 @@ class DB {
 
     }
 
-    public function getLastInsertId(){
+    /**
+     * Raw exec request.
+     * Statement data need to be properly escaped.
+     *
+     * @param string $statement
+     * @return bool
+     */
+    public function execute($statement) {
+
+        $this->rowsAffected = 0;
+        $result = $this->dbinstance->exec($statement);
+
+        if($result !== false) {
+            $this->rowsAffected = $result;
+            return true;
+        }
+
+        return false;
+
+    }
+
+    /**
+     * Get value of last inserted ID into the DB instance
+     *
+     * @return string
+     */
+    public function getLastInsertId() {
         return $this->dbinstance->lastInsertId();
     }
 
-    public function getRowsAffected(){
+    /**
+     * Get affected rows after execution of methods related to insert or execute
+     *
+     * @return int
+     */
+    public function getRowsAffected() {
         return $this->rowsAffected;
+    }
+
+    /**
+     * Get rows selected by SelectBegin or Select methods
+     *
+     * @return int
+     */
+    public function getRowsSelected() {
+        return $this->rowsSelected;
     }
 
 }
