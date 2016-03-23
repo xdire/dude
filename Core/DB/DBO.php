@@ -15,7 +15,7 @@ abstract class DBO {
     private $config = null;
 
     /** @var \PDO */
-    private $dbinstance = null;
+    protected $dbinstance = null;
 
     /** @var int */
     protected $rowsSelected = 0;
