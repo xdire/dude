@@ -20,11 +20,19 @@ function __eeh($code, $msg, $file, $line ) {
 register_shutdown_function('__sdn');
 function __sdn() {
     if($error = error_get_last()) {
+
         ob_clean();
         header("HTTP/1.0 500");
-        $file = explode("/", $error['file']);
-        $fileName = strstr( array_pop($file), '.', true);
-        echo '{"errorCode":500,"errorMessage":"Error happened, be calm, send us a report and we\'ll fix it. ('.$fileName.':'.$error['line'].') "}';
+
+        if(strpos(\Xdire\Dude\Core\App::getEnvironment(),'dev') !== false) {
+            echo "Error produced by application: \n";
+            echo "Code: ".$error['type']." \nMessage: ".$error['message']." \nFile: ".$error['file']." \nLine: ".$error['line'];
+        } else {
+            $file = explode("/", $error['file']);
+            $fileName = strstr( array_pop($file), '.', true);
+            echo '{"errorCode":500,"errorMessage":"Error happened, be calm, send us a report and we\'ll fix it. ('.$fileName.':'.$error['line'].') "}';
+        }
+
         ob_flush();
     }
     ob_end_clean();
@@ -74,7 +82,7 @@ function getSessionVar($var){
     if(isset($_SESSION[$var])){
         return $_SESSION[$var];
     }
-    return false;
+    return null;
 
 }
 

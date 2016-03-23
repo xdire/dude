@@ -1,17 +1,10 @@
-<?php
-/**
- * Created by PhpStorm.
- * User: xdire
- * Date: 20.05.15
- * Time: 10:54
- */
-
-namespace Xdire\Dude\Core\Log;
+<?php namespace Xdire\Dude\Core\Log;
 
 use Xdire\Dude\Core\Kernel;
 
 class Log extends Kernel {
 
+    private static $logFolder="";
     private static $logBuffer=array();
     private static $logStart=true;
     private static $logError=false;
@@ -19,6 +12,10 @@ class Log extends Kernel {
     public static $disableOutput = true;
 
     private function __construct(){}
+
+    public static function setLogFolderPath($path){
+        self::$logFolder = $path;
+    }
 
     public static function append($error,$time=true) {
 
@@ -85,7 +82,7 @@ class Log extends Kernel {
         $date = date('Y-m-d');
         if(isset(self::$config)) {
             //$filepath = O_ROOTPATH . '/' . self::$config['path_log'] . '/' . $date . '.log';
-            $filepath = O_ROOTPATH . '/Data/Log/' . $date . '.log';
+            $filepath =  self::$logFolder. '/' . $date . '.log';
             if (@$filepointer = fopen($filepath, "a+")) {
                 return $filepointer;
             } else {
