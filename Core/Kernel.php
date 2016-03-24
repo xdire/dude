@@ -183,16 +183,20 @@ abstract class Kernel {
      *
      *  @throws \Exception
      */
-    protected static function routeCreatePath($method,$path,$callback=null,Middleware $middleware = null) {
+    protected static function routeCreatePath($method, $path, callable $callback=null, Middleware $middleware = null) {
 
         if(strlen($path) > 1) {
 
             $varsstarted = false;
-            $pathes=explode('/',$path);
+            $pathes = explode('/',$path);
+            $pathesNum = count($pathes);
+
             /** @var RouterPathObject | null $currentRPO */
             $rootRPONumber = null;
 
             $rph = new RouterPathHolder();
+
+            $i = 1;
 
             foreach($pathes as $rout) {
 
@@ -208,74 +212,83 @@ abstract class Kernel {
                 // Parse objects which have no asterisk multiplier in body
                 if(!$variable) {
 
-                    // If variable parameters for route existed and started to filling into route
-                    if(!$varsstarted) {
+                    // Set brahching process to exact (not virtual) extensions
+                    $varsstarted = false;
 
-                        /**
-                         * Defined variable holding current route INT ID
-                         * @var int|null $currentRout
-                         */
-                        $currentRout = null;
+                    /**
+                     * Defined variable holding current route INT ID
+                     * @var int|null $currentRout
+                     */
+                    $currentRout = null;
 
-                        // 1. Add routes to indexing dictionary - for easy numeric access through all RPO objects
-                        if(!isset(self::$routingDictionary[$rout])) {
-                            self::$routingDictionary[$rout] = self::$routingDictionaryCounter;
-                            $currentRout = self::$routingDictionaryCounter++;
-                        } else {
-                            $currentRout = self::$routingDictionary[$rout];
-                        }
+                    // 1. Add routes to indexing dictionary - for easy numeric access through all RPO objects
+                    if(!isset(self::$routingDictionary[$rout])) {
+                        self::$routingDictionary[$rout] = self::$routingDictionaryCounter;
+                        $currentRout = self::$routingDictionaryCounter++;
+                    } else {
+                        $currentRout = self::$routingDictionary[$rout];
+                    }
 
-                        // 2. Check if Root Path is defined and if not - assign it to RoutePathHolder
-                        if(!$rph->getRoot()) {
-                            // 2.1. If null in array for INT currentRout index - create new RPO (will be saved later)
-                            if(!isset(self::$routingPathObjects[$currentRout])) {
+                    // 2. Check if Root Path is defined and if not - assign it to RoutePathHolder
+                    if(!$rph->getRoot()) {
+                        // 2.1. If null in array for INT currentRout index - create new RPO (will be saved later)
+                        if(!isset(self::$routingPathObjects[$currentRout])) {
 
-                                $currentRPO = new RouterPathObject();
-                                $rootRPONumber = $currentRout;
-                                $rph->addRoot($currentRPO);
-
-                            }
-                            // 2.2 Take reference for existing RPO if program has found one
-                            else {
-
-                                $currentRPO = &self::$routingPathObjects[$currentRout];
-                                $rph->addRoot($currentRPO);
-
-                            }
+                            $currentRPO = new RouterPathObject();
+                            $rootRPONumber = $currentRout;
+                            $rph->addRoot($currentRPO);
 
                         }
-                        // 3. If Root path defined and next route particle exists then try to assign it
+                        // 2.2 Take reference for existing RPO if program has found one
                         else {
-                            // 3.1 If existed sub route assign it to NEXT in RoutePathHolder
-                            if($rph->getCurrent()->routeObject->__checkExtenstionForRouteId($currentRout)) {
-                                $rph->addNext($rph->getCurrent()->routeObject->__getExtensionForRouteId($currentRout));
-                            }
-                            // 3.2 If route not existed - create new RPO and assign it as extension
-                            else
-                            {
-                                $extRPO = new RouterPathObject();
-                                // Add extension to previous found RPO
-                                $tempLink = $rph->getCurrent()->routeObject->__addExtension($currentRout,$extRPO);
-                                // Assign new RPO as next in the tree
-                                $rph->addNext($tempLink);
-                            }
+
+                            $currentRPO = &self::$routingPathObjects[$currentRout];
+                            $rph->addRoot($currentRPO);
 
                         }
 
                     }
-                    // Throw exception if route format has syntax errors
+                    // 3. If Root path defined and next route particle exists then try to assign it
                     else {
-                        throw new \Exception('Router methods can\'t have variable in between route: '.$path, 67);
-                        break;
+                        // 3.1 If existed sub route assign it to NEXT in RoutePathHolder
+                        if($rph->getCurrent()->routeObject->__checkExtenstionForRouteId($currentRout)) {
+                            $rph->addNext($rph->getCurrent()->routeObject->__getExtensionForRouteId($currentRout));
+                        }
+                        // 3.2 If route not existed - create new RPO and assign it as extension
+                        else
+                        {
+                            $extRPO = new RouterPathObject();
+                            // Add extension to previous found RPO
+                            $tempLink = $rph->getCurrent()->routeObject->__addExtension($currentRout, $extRPO);
+                            // Assign new RPO as next in the tree
+                            $rph->addNext($tempLink);
+                        }
+
                     }
 
                 }
-                // Route variables
+                // Create virtual route if it's variable
                 else
                 {
-                    $varsstarted = true;
-                    $rph->getCurrent()->routeObject->__addName(ltrim($rout,'*'));
+
+                    $rph->getCurrent()->routeObject->__addName(ltrim($rout, '*'));
+
+                    // Add only one virtual extension after not virtual one
+                    if(!$varsstarted) {
+
+                        $extRPO = new RouterPathObject();
+                        $extRPO->isVirtual = true;
+                        $rph->getCurrent()->routeObject->virtualExtStr = $extRPO;
+                        $rph->addNext($rph->getCurrent()->routeObject->virtualExtStr);
+
+                        // Set branching process to add variables to virtual extension
+                        $varsstarted = true;
+
+                    }
+
                 }
+
+                $i++;
 
             }
 
@@ -285,9 +298,15 @@ abstract class Kernel {
 
             // Get most deep available object in chain and assign Callbacks and MiddleFunctions (IF: Middleware)
             if(isset($rph->getCurrent()->routeObject)) {
-                $rph->getCurrent()->routeObject->__addEvent($method,$callback);
-                if($middleware !== null)
-                    $rph->getCurrent()->routeObject->__setMiddleware($middleware);
+
+                if($i == $pathesNum) {
+
+                    $rph->getCurrent()->routeObject->__addEvent($method, $callback);
+                    if ($middleware !== null)
+                        $rph->getCurrent()->routeObject->__setMiddleware($middleware);
+
+                }
+
             }
 
         } else {
@@ -306,57 +325,67 @@ abstract class Kernel {
 
     }
 
+    /**
+     *  Dispatch incoming request trough routing tree
+     */
     private static function routeUser() {
 
-        if(self::$routerEnabled && self::$routingDictionaryCounter > 0) {
+        // Check if request is at least suitable to resolve
+        if(self::$routingDictionaryCounter != 0) {
 
             /** @var RouterPathObject | null $routeRoot */
             $routeRoot = null;
             $aliasCounter = 0;
-            $aliasStarted = false;
 
             foreach (self::$routerPath as $path => $v) {
 
+                // If current route path is in dictionary of exact routes
                 if(isset(self::$routingDictionary[$path])) {
 
                     $routeNum = self::$routingDictionary[$path];
 
+                    // Start routing from root
                     if(!isset($routeRoot)) {
 
                         $routeRoot = self::$routingPathObjects[$routeNum];
 
-                    } else {
+                    }
+                    // Get exact route
+                    else if ($newRoot = $routeRoot->getExtensionForRouteId($routeNum)) {
 
-                        if ($routeRoot->extensionsAmount > 0) {
+                        $routeRoot = $newRoot;
+                        $aliasCounter=0;
 
-                            if ($newRoot = $routeRoot->getExtensionForRouteId($routeNum)) {
-                                $routeRoot = $newRoot;
-                            }
+                    }
+                    // Check virtual route if exact not found
+                    else if (isset($routeRoot->virtualExtStr)) {
 
+                        if($name = $routeRoot->getAliasNameForCellNumber($aliasCounter)) {
+                            self::$requestObject->__setPathParameter($name, $path);
+                            $aliasCounter++;
                         }
+                        $routeRoot = $routeRoot->virtualExtStr;
+                        $aliasCounter=0;
 
-                    }
-
-                } else {
-
-                    if(!$aliasStarted) {
-                        self::doNotFound();
-                        break;
                     }
 
                 }
+                // If current route is definitely some variable parameter
+                else {
 
-                if($aliasStarted && ($routeRoot->getAliasNamesAmount() > $aliasCounter)) {
-
+                    // Put Variable into Request Path Parameter with attached variable
                     if($name = $routeRoot->getAliasNameForCellNumber($aliasCounter)) {
-                        self::$requestObject->__setPathParameter($name,$path);
+
+                        self::$requestObject->__setPathParameter($name, $path);
+                        $aliasCounter++;
                     }
-                    $aliasCounter++;
 
-                }
+                    // If exists virtual route for this branch - use it
+                    if (isset($routeRoot->virtualExtStr)) {
+                        $routeRoot = $routeRoot->virtualExtStr;
+                        $aliasCounter = 0;
+                    }
 
-                if($routeRoot->extensionsAmount == 0) {
-                    $aliasStarted = true;
                 }
 
             }
@@ -390,88 +419,97 @@ abstract class Kernel {
         // Put all data to output buffer for avoid any output except fired by Response->send();
         ob_start();
 
-        // execute Middleware if one exists
+        // ------------------------------------------------------------------------------------
+        // Start routing through Middleware if it's exists for this route
+        //
+        // Middleware need to continue route with executing next($req,$res)
+        //
+        // ------------------------------------------------------------------------------------
         if($middleware = $route->getMiddleware()) {
+
             try {
-                $middleware->start(self::$requestObject,$response);
+
+                if($func = $route->getEventForEventType(self::$routerMethod)) {
+                    $middleware->start(self::$requestObject,$response,$func);
+                } elseif ($func = $route->getEventForEventType(0)) {
+                    $middleware->start(self::$requestObject,$response,$func);
+                } else {
+                    self::doRouteError(404);
+                }
+
             } catch (\Exception $e) {
                 self::doRouteError($e->getCode());
                 ob_clean();
                 return;
             }
-        }
 
+        }
+        else {
         // ------------------------------------------------------------------------------------
+        // If no middleware was defined for this route then
+        //
         // Start routing by selecting method binded callable
         // ------------------------------------------------------------------------------------
 
-        // Select callable for current method
-        if($func = $route->getEventForEventType(self::$routerMethod)) {
-            if (is_callable($func)) {
+            // Select callable for current method
+            if ($func = $route->getEventForEventType(self::$routerMethod)) {
+
                 try {
                     $func(self::$requestObject, $response);
                 } catch (\Exception $e) {
                     self::doRouteError($e->getCode());
                 }
+
             }
-            else {self::doRouteError(500);}
-        }
-        // If callable is not found for current method then search for record in ALL
-        elseif ($func = $route->getEventForEventType(0)){
-            if (is_callable($func)) {
+            // If callable is not found for current method then search for record in ALL
+            elseif ($func = $route->getEventForEventType(0)) {
+
                 try {
                     $func(self::$requestObject, $response);
                 } catch (\Exception $e) {
                     self::doRouteError($e->getCode());
                 }
+
+            } // Produce error if no methods found
+            else {
+                self::doRouteError(404);
             }
-            else {self::doRouteError(500);}
-        }
-        // Produce error if no methods found
-        else {
-            self::doRouteError(404);
+
         }
 
         // Clean all data which echoed to output stream not by Response->send()
-        //ob_end_flush();
         ob_clean();
 
     }
 
     private static function doRouteError($code) {
 
-        echo 'route error';
-
         switch($code) {
 
             case 404:
 
-                header('X-PHP-Response-Code', true, 404);
+                http_response_code(404);
                 break;
 
             case 401:
 
-                header('X-PHP-Response-Code', true, 401);
+                http_response_code(401);
                 break;
 
             case 500:
 
-                header('X-PHP-Response-Code', true, 500);
+                http_response_code(500);
                 break;
 
             default:
 
-                header('X-PHP-Response-Code', true, $code);
+                http_response_code($code);
                 break;
 
         }
 
         ob_clean();
 
-    }
-
-    private static function doNotFound() {
-        header('X-PHP-Response-Code', true, 404);
     }
 
 }

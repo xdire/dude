@@ -1,11 +1,4 @@
-<?php
-/**
- * Created by Anton Repin.
- * Date: 2/16/16
- * Time: 12:54 PM
- */
-
-namespace Xdire\Dude\Core\Server;
+<?php namespace Xdire\Dude\Core\Server;
 
 use Xdire\Dude\Core\Face\Middleware;
 
@@ -22,10 +15,19 @@ class RouterPathObject
     // ALL
     // GET
     // POST etc
+    /** @var null|\SplFixedArray  */
     public $attachedEvents = null;
+    /** @var bool  */
+    public $isVirtual = false;
+    ///** @var int  */
+    //public $attachedEventsAmount = 0;
 
     /** @var null|\SplFixedArray  */
     public $extensions = null;
+    /** @var RouterPathObject | null */
+    public $virtualExtInt = null;
+    /** @var RouterPathObject | null */
+    public $virtualExtStr = null;
     /** @var int  */
     public $extensionsAmount = 0;
     /** @var int  */
@@ -111,7 +113,7 @@ class RouterPathObject
      * @param int $eventType
      * @param Callable $closure
      */
-    public function __addEvent($eventType,$closure) {
+    public function __addEvent($eventType,callable $closure) {
         $this->attachedEvents[$eventType] = $closure;
     }
 
@@ -170,6 +172,9 @@ class RouterPathObject
         $this->secured = true;
     }
 
+    /**
+     * @param Middleware $m
+     */
     public function __setMiddleware(Middleware $m){
         $this->middleware = $m;
     }
