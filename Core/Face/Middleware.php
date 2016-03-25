@@ -5,5 +5,5 @@ use Xdire\Dude\Core\Server\Response;
 
 interface Middleware
 {
-    public function start(Request &$request, Response &$response, callable &$nextCallable);
+    public function start(Request &$request, Response &$response, callable &$next);
 }
