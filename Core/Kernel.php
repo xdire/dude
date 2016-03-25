@@ -6,6 +6,15 @@ use Xdire\Dude\Core\Server\Response;
 use Xdire\Dude\Core\Server\RouterPathHolder;
 use Xdire\Dude\Core\Server\RouterPathObject;
 
+/**
+ * Dude Kernel Process Initializer
+ *
+ * Class defining launch variables and type of program
+ * way of execution
+ *
+ * Class Kernel
+ * @package Xdire\Dude\Core
+ */
 abstract class Kernel {
 
     /** @var array */
@@ -72,7 +81,7 @@ abstract class Kernel {
      *
      * @throws \Exception
      */
-    public static function init(Array $config, $env = null) {
+    public static final function init(Array $config, $env = null) {
 
         // Set environment
         if(isset($env)) self::$env = $env;
@@ -103,17 +112,27 @@ abstract class Kernel {
                 throw new \Exception("No process file provided for serving local program executable",500);
             require(self::$processFilePath);
         }
-
+        // Let process be finished
         if(session_status() === PHP_SESSION_ACTIVE){
             session_write_close();
         }
 
     }
 
-    protected static function initRouting() {
+    /**
+     * Routes initialization
+     */
+    protected static final function initRouting() {
 
+        /* Define connection method */
         self::$routerMethod = (isset(self::$requestMethods[$_SERVER['REQUEST_METHOD']])) ? self::$requestMethods[$_SERVER['REQUEST_METHOD']] : 0;
         self::urlToPath($_SERVER['REQUEST_URI']);
+
+        /* Create default empty root route for router */
+        self::$routingDictionary["/"] = self::$routingDictionaryCounter;
+        $RPO = new RouterPathObject();
+        self::$routingPathObjects[self::$routingDictionaryCounter] = $RPO;
+        self::$routingDictionaryCounter++;
 
     }
 
@@ -181,9 +200,8 @@ abstract class Kernel {
      *  @param null | callable $callback
      *  @param Middleware $middleware
      *
-     *  @throws \Exception
      */
-    protected static function routeCreatePath($method, $path, callable $callback=null, Middleware $middleware = null) {
+    protected static final function routeCreatePath($method, $path, callable $callback=null, Middleware $middleware = null) {
 
         if(strlen($path) > 1) {
 
@@ -250,6 +268,7 @@ abstract class Kernel {
                     }
                     // 3. If Root path defined and next route particle exists then try to assign it
                     else {
+
                         // 3.1 If existed sub route assign it to NEXT in RoutePathHolder
                         if($rph->getCurrent()->routeObject->__checkExtenstionForRouteId($currentRout)) {
                             $rph->addNext($rph->getCurrent()->routeObject->__getExtensionForRouteId($currentRout));
@@ -271,17 +290,30 @@ abstract class Kernel {
                 else
                 {
 
+                    // Add alias for name
                     $rph->getCurrent()->routeObject->__addName(ltrim($rout, '*'));
 
-                    // Add only one virtual extension after not virtual one
-                    if(!$varsstarted) {
+                    // Check if virutal extension is not exist
+                    if(!isset($rph->getCurrent()->routeObject->virtualExtStr)){
 
-                        $extRPO = new RouterPathObject();
-                        $extRPO->isVirtual = true;
-                        $rph->getCurrent()->routeObject->virtualExtStr = $extRPO;
+                        // Add only one virtual extension after not virtual one
+                        if(!$varsstarted) {
+
+                            $extRPO = new RouterPathObject();
+                            $extRPO->isVirtual = true;
+                            $rph->getCurrent()->routeObject->virtualExtStr = $extRPO;
+                            $rph->addNext($rph->getCurrent()->routeObject->virtualExtStr);
+
+                            // Set branching process to add variables to virtual extension
+                            $varsstarted = true;
+
+                        }
+
+                    }
+                    // Take existing virtual route if defined for that rout
+                    else {
+
                         $rph->addNext($rph->getCurrent()->routeObject->virtualExtStr);
-
-                        // Set branching process to add variables to virtual extension
                         $varsstarted = true;
 
                     }
@@ -310,15 +342,17 @@ abstract class Kernel {
             }
 
         } else {
-            // If path is less than 1 symbol - check if this a root path
+
+            // If path is a root path, then apply events to the root path
             if($path == "/") {
-                self::$routingDictionary[$path] = self::$routingDictionaryCounter;
-                $currentRPO = new RouterPathObject();
-                self::$routingPathObjects[self::$routingDictionaryCounter] = $currentRPO;
-                $currentRPO->__addEvent($method,$callback);
+
+                $currentRout = self::$routingDictionary[$path];
+                $currentRPO = &self::$routingPathObjects[$currentRout];
+
+                $currentRPO->__addEvent($method, $callback);
                 if($middleware !== null)
                     $currentRPO->__setMiddleware($middleware);
-                self::$routingDictionaryCounter++;
+
             }
 
         }
@@ -328,7 +362,7 @@ abstract class Kernel {
     /**
      *  Dispatch incoming request trough routing tree
      */
-    private static function routeUser() {
+    private static final function routeUser() {
 
         // Check if request is at least suitable to resolve
         if(self::$routingDictionaryCounter != 0) {
@@ -393,13 +427,13 @@ abstract class Kernel {
             // Proceed to route
             if(isset($routeRoot)) {
                 self::doRoute($routeRoot);
-            } else {
-                self::doRouteError(404);
+                return;
             }
 
-        } else {
-            self::doRouteError(404);
         }
+
+        // Produce not found in all failed cases
+        self::doRouteError(404);
 
     }
 
@@ -408,7 +442,7 @@ abstract class Kernel {
      * ------------------------------------------------------
      * @param RouterPathObject $route
      */
-    private static function doRoute(RouterPathObject $route) {
+    private static final function doRoute(RouterPathObject $route) {
 
         // Add query params to Request
         self::$requestObject->__setQueryParameters(self::$routerQuery);
@@ -423,8 +457,8 @@ abstract class Kernel {
         // Start routing through Middleware if it's exists for this route
         //
         // Middleware need to continue route with executing next($req,$res)
-        //
         // ------------------------------------------------------------------------------------
+
         if($middleware = $route->getMiddleware()) {
 
             try {
@@ -445,6 +479,7 @@ abstract class Kernel {
 
         }
         else {
+
         // ------------------------------------------------------------------------------------
         // If no middleware was defined for this route then
         //
@@ -482,6 +517,11 @@ abstract class Kernel {
 
     }
 
+    /**
+     * Handle standard set of errors
+     *
+     * @param $code
+     */
     private static function doRouteError($code) {
 
         switch($code) {
