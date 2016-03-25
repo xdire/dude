@@ -41,6 +41,90 @@ function __sdn() {
 // ---------------------------------------------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------------------------------------------------
+/*
+ *                                              DEBUGGING FUNCTIONS SECTION
+ */
+// ---------------------------------------------------------------------------------------------------------------------
+function vd($variable) {
+
+    $dt = debug_backtrace();
+    $dt = array_reverse($dt);
+    $pad = 0;
+    echo "\n--------------------------------TRACE---------------------------------\n";
+    $started = false;
+    foreach($dt as $dlevel) {
+
+        if($started) {
+
+            for ($p = 0; $p < $pad; $p++) {
+                echo " ";
+            }
+            if ($dlevel['function'] !== 'vd') {
+                echo $dlevel["file"] . " -> " . $dlevel['line'] . " -> " . $dlevel['function'] . "\n";
+            } else {
+                echo $dlevel["file"] . " -> " . $dlevel['line'] . "\n";
+            }
+            $pad++;
+
+        } else {
+
+            if($dlevel['function'] == "init" && (strpos($dlevel['class'],'\Core\Kernel') !== false)){
+                $started = true;
+            }
+
+        }
+
+    }
+    echo "--------------------------------DUMP----------------------------------\n";
+
+    var_dump($variable);
+
+    ob_flush();
+
+}
+function vdh($variable) {
+
+    echo '<pre>';
+    $dt = debug_backtrace();
+    $dt = array_reverse($dt);
+    $pad = 0;
+    echo "--------------------------------TRACE---------------------------------<br>";
+    $started = false;
+    foreach($dt as $dlevel) {
+
+        if($started) {
+
+            for ($p = 0; $p < $pad; $p++) {
+                echo "&nbsp;";
+            }
+            if ($dlevel['function'] !== 'vdh') {
+                echo $dlevel["file"] . " -> " . $dlevel['line'] . " -> " . $dlevel['function'] . "<br>";
+            } else {
+                echo $dlevel["file"] . " -> " . $dlevel['line'] . "<br>";
+            }
+            $pad++;
+
+        } else {
+
+            if($dlevel['function'] == "init" && (strpos($dlevel['class'],'\Core\Kernel') !== false)){
+                $started = true;
+            }
+
+        }
+
+    }
+    echo "--------------------------------DUMP----------------------------------<br>";
+
+    var_dump($variable);
+    echo '</pre>';
+    ob_flush();
+
+}
+// ---------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------------------------------
+
 /**
  * @param $string
  * @return string : With fixed Apostrophe
