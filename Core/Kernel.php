@@ -21,6 +21,8 @@ abstract class Kernel {
     protected static $config=array();
     /** @var string | int */
     protected static $env = "";
+    /** @var int | null */
+    protected static $envType = null;
 
     /** @var string|null */
     protected static $routeFilePath = null;
@@ -472,7 +474,7 @@ abstract class Kernel {
                 }
 
             } catch (\Exception $e) {
-                self::doRouteError($e->getCode());
+                self::doRouteError($e->getCode(), $e->getMessage());
                 ob_clean();
                 return;
             }
@@ -492,7 +494,7 @@ abstract class Kernel {
                 try {
                     $func(self::$requestObject, $response);
                 } catch (\Exception $e) {
-                    self::doRouteError($e->getCode());
+                    self::doRouteError($e->getCode(), $e->getMessage());
                 }
 
             }
@@ -502,7 +504,7 @@ abstract class Kernel {
                 try {
                     $func(self::$requestObject, $response);
                 } catch (\Exception $e) {
-                    self::doRouteError($e->getCode());
+                    self::doRouteError($e->getCode(), $e->getMessage());
                 }
 
             } // Produce error if no methods found
@@ -522,9 +524,21 @@ abstract class Kernel {
      *
      * @param $code
      */
-    private static function doRouteError($code) {
+    private static function doRouteError($code,$message) {
+
+        if(!isset(self::$envType))
+            self::whichEnv();
+        if(self::$envType == 0){
+            $message = "";
+        }
 
         switch($code) {
+
+            case 0:
+            case 500:
+
+                http_response_code(500);
+                break;
 
             case 404:
 
@@ -536,11 +550,6 @@ abstract class Kernel {
                 http_response_code(401);
                 break;
 
-            case 500:
-
-                http_response_code(500);
-                break;
-
             default:
 
                 http_response_code($code);
@@ -548,8 +557,16 @@ abstract class Kernel {
 
         }
 
+        echo $message;
+        ob_flush();
         ob_clean();
 
+    }
+
+    protected static function whichEnv() {
+        if(strpos(self::$env,'dev') !== false) {
+            self::$envType = 1;
+        }
     }
 
 }

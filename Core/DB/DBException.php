@@ -1,5 +1,7 @@
 <?php namespace Xdire\Dude\Core\DB;
 
+use Xdire\Dude\Core\App;
+
 class DBException extends \Exception
 {
     /** @var int */
@@ -16,15 +18,20 @@ class DBException extends \Exception
      */
     public function __construct($exceptionMessage,$exceptionCode,$dbMessage = null,$dbCode = null)
     {
-        parent::__construct($exceptionMessage,$exceptionCode);
+        if(App::getEnvironment() == 1) {
+            parent::__construct($exceptionMessage, $exceptionCode);
+        } else {
+            parent::__construct($dbMessage, $exceptionCode);
+        }
         $this->dbErrorCode = $dbCode;
         $this->dbErrorMessage = $dbMessage;
     }
 
+
     /**
      * @return int
      */
-    public function getDbErrorCode()
+    protected function getDbErrorCode()
     {
         return $this->dbErrorCode;
     }
@@ -32,9 +39,10 @@ class DBException extends \Exception
     /**
      * @return string
      */
-    public function getDbErrorMessage()
+    protected function getDbErrorMessage()
     {
         return $this->dbErrorMessage;
     }
+
 
 }

@@ -38,7 +38,7 @@ final class App extends Kernel {
      *
      * @return void
      */
-    final public static function useController(Controller $controller,$data=null) {
+    final public static function useController(Controller $controller, $data=null) {
 
         $controller->start($data);
 
@@ -114,19 +114,21 @@ final class App extends Kernel {
 
     }
 
-    final public static function routeTo($route){
+    final public static function routeTo($route) {
         header('Location: '.$route);
     }
 
-    public static function disableRouter(){
-        self::$routerEnabled=false;
+    public static function disableRouter() {
+        self::$routerEnabled = false;
     }
 
     /**
      * @return int|string
      */
-    public static function getEnvironment(){
-        return self::$env;
+    public static function getEnvironment() {
+        if(!isset(self::$envType))
+            self::whichEnv();
+        return self::$envType;
     }
 
 }

@@ -103,6 +103,8 @@ class Response
      * @throws \Exception
      */
     public function end($code, $content = null) {
+
+        $this->code = $code;
         // Clean
         ob_clean();
         // Process
@@ -115,7 +117,8 @@ class Response
         // Flush buffer
         ob_flush();
         // Throw back to Kernel
-        throw new \Exception("Operation ended",$code);
+        throw new \Exception("",$code);
+
     }
 
     /**
@@ -128,7 +131,7 @@ class Response
 
     private function sendSrvInfo(){
         if(!$this->codeSent) {
-            header($this->httpVer . " " . $this->code);
+            http_response_code($this->code);
             $this->sendHeaders();
             $this->codeSent = true;
         }

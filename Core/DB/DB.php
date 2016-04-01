@@ -218,11 +218,13 @@ class DB extends DBO
         }
         catch (\PDOException $e) {
 
-            if($e->getCode() == 23000){
+            if($e->getCode() == 23000) {
+
                 throw new DBDuplicationException("Data can't be written because of duplication", 409,
-                    $e->getMessage(), $e->getCode());
+                    $e->getMessage(), $this->dbinstance->errorCode());
+
             } else {
-                throw new DBWriteException("Data write was failed", 500, $e->getMessage(), $e->getCode());
+                throw new DBWriteException("Data write was failed", 500, $e->getMessage(), $this->dbinstance->errorCode());
             }
 
         }

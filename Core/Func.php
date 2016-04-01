@@ -8,7 +8,7 @@
 set_error_handler("__eeh");
 function __eeh($code, $msg, $file, $line ) {
 
-    if(strpos(\Xdire\Dude\Core\App::getEnvironment(),'dev') !== false) {
+    if(\Xdire\Dude\Core\App::getEnvironment() == 1) {
         echo "Error produced by application: \n";
         echo "Code: $code \nMessage: $msg \nFile: $file \nLine: $line";
         ob_flush();
@@ -24,7 +24,7 @@ function __sdn() {
         ob_clean();
         header("HTTP/1.0 500");
 
-        if(strpos(\Xdire\Dude\Core\App::getEnvironment(),'dev') !== false) {
+        if(\Xdire\Dude\Core\App::getEnvironment() == 1) {
             echo "Error produced by application: \n";
             echo "Code: ".$error['type']." \nMessage: ".$error['message']." \nFile: ".$error['file']." \nLine: ".$error['line'];
         } else {
