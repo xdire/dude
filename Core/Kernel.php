@@ -522,15 +522,12 @@ abstract class Kernel {
     /**
      * Handle standard set of errors
      *
-     * @param $code
+     * @param int $code
+     * @param string $message
      */
-    private static function doRouteError($code,$message) {
+    private static function doRouteError($code, $message = "") {
 
-        if(!isset(self::$envType))
-            self::whichEnv();
-        if(self::$envType == 0){
-            $message = "";
-        }
+        if(self::whichEnv() == 0) $message = "";
 
         switch($code) {
 
@@ -563,10 +560,23 @@ abstract class Kernel {
 
     }
 
+    /**
+     * Returns 1 for dev environments
+     * Returns 0 for other environments
+     *
+     * @return int|null
+     */
     protected static function whichEnv() {
-        if(strpos(self::$env,'dev') !== false) {
-            self::$envType = 1;
-        }
+
+        if(!isset(self::$envType)) {
+            if (strpos(self::$env, 'dev') !== false) {
+                self::$envType = 1;
+                return 1;
+            }
+            return 0;
+        } else
+            return self::$envType;
+
     }
 
 }

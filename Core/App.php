@@ -123,12 +123,14 @@ final class App extends Kernel {
     }
 
     /**
-     * @return int|string
+     * Returns
+     * 1 for Development environments
+     * 0 for Production environments
+     *
+     * @return int
      */
     public static function getEnvironment() {
-        if(!isset(self::$envType))
-            self::whichEnv();
-        return self::$envType;
+        return self::whichEnv();
     }
 
 }
