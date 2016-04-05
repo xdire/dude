@@ -19,9 +19,9 @@ class DBException extends \Exception
     public function __construct($exceptionMessage,$exceptionCode,$dbMessage = null,$dbCode = null)
     {
         if(App::getEnvironment() == 1) {
-            parent::__construct($exceptionMessage, $exceptionCode);
-        } else {
             parent::__construct($dbMessage, $exceptionCode);
+        } else {
+            parent::__construct($exceptionMessage, $exceptionCode);
         }
         $this->dbErrorCode = $dbCode;
         $this->dbErrorMessage = $dbMessage;
