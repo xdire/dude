@@ -65,9 +65,8 @@ class DB extends DBO
      * @param bool $compressResult     Return SplFixedArray instead of usual array
      * @return array | \SplFixedArray
      * @throws DBException
-     * @throws DBNotFoundException
      */
-    public function select($statement, array $params = null, $compressResult=false) {
+    public function select($statement, array $params = null, $compressResult = false) {
 
         try {
 
@@ -78,7 +77,7 @@ class DB extends DBO
             if($result) {
 
                 if (!$compressResult) {
-                    return $query->fetchAll();
+                    return $query->fetchAll(\PDO::FETCH_ASSOC);
                 }
                 else
                 {
@@ -97,9 +96,9 @@ class DB extends DBO
                         $k++;
                         if($i > 1999)
                         {
-                            $i=0;
+                            $i = 0;
                             $oldIndex = $return->getSize();
-                            $return->setSize($oldIndex+2000);
+                            $return->setSize($oldIndex + 2000);
                         }
                     }
                     $return->setSize($k);
@@ -109,9 +108,8 @@ class DB extends DBO
 
             }
             else
-            {
-                throw new DBNotFoundException("Data not found", 404, $query->errorInfo(), $query->errorCode());
-            }
+                throw new DBReadException("Data read was failed", 404, $query->errorInfo(), $query->errorCode());
+
         }
         catch (\PDOException $e) {
             throw new DBReadException("Data read was failed", 500, $e->getMessage(), $e->getCode());
@@ -134,7 +132,7 @@ class DB extends DBO
      * @param string $statement        SQL SELECT query
      * @param array $params            OPTIONAL Params for query
      * @return array|null              Associative array if found row, NULL otherwise
-     * @throws \Xdire\Dude\Core\DB\DBException
+     * @throws DBReadException
      */
     public function selectRow($statement, array $params = null) {
 
@@ -146,9 +144,8 @@ class DB extends DBO
 
             if($result) {
                 return $query->fetch(\PDO::FETCH_ASSOC);
-            } else {
-                throw new DBNotFoundException("Data not found", 404, $query->errorInfo(), $query->errorCode());
-            }
+            } else
+                throw new DBReadException("Data read was failed", 404, $query->errorInfo(), $query->errorCode());
 
         }
         catch (\PDOException $e) {
@@ -171,14 +168,14 @@ class DB extends DBO
      * @param $statement
      * @param $params
      * @return bool
-     * @throws \Xdire\Dude\Core\DB\DBException
+     * @throws DBException
      */
     private function insertExec($statement,$params) {
 
         try {
 
-            $this->rowsAffected=0;
-            $result=false;
+            $this->rowsAffected = 0;
+            $result = false;
             $query = $this->dbinstance->prepare($statement);
 
             if (isset($params) && isset($params[0])) {
@@ -188,7 +185,7 @@ class DB extends DBO
                 }
 
             } else {
-                $result=$query->execute();
+                $result = $query->execute();
             }
 
             if($result) {
@@ -207,14 +204,14 @@ class DB extends DBO
                     $this->rowsAffected = $rowset;
 
                 } else
-                    $this->rowsAffected=$query->rowCount();
+                    $this->rowsAffected = $query->rowCount();
 
                 $query = null;
                 return true;
 
-            } else {
+            } else
                 throw new DBWriteException("Data write was failed", 500, $query->errorInfo(), $query->errorCode());
-            }
+
         }
         catch (\PDOException $e) {
 
