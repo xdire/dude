@@ -280,4 +280,23 @@ abstract class DBO {
         return $this->rowsSelected;
     }
 
+    protected function transactionStart() {
+        $this->dbinstance->beginTransaction();
+        $this->isTransaction = true;
+    }
+
+    protected function transactionCommit() {
+        if($this->isTransaction) {
+            $this->dbinstance->commit();
+        }
+        $this->isTransaction = false;
+    }
+
+    protected function transactionCancel() {
+        if($this->isTransaction) {
+            $this->dbinstance->rollBack();
+        }
+        $this->isTransaction = false;
+    }
+
 }
