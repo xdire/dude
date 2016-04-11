@@ -158,7 +158,7 @@ abstract class DBO {
      * @param $statement
      * @return \PDOStatement
      * @throws DBReadException
-     * @throws DBNotFoundException
+     *
      */
     protected function selectBegin($statement) {
 
@@ -173,11 +173,10 @@ abstract class DBO {
 
                 return $query;
 
-            } else {
+            } else
+                throw new DBReadException("Data read was failed", 404, $query->errorInfo(), $query->errorCode());
 
-                throw new DBNotFoundException("Data not found", 404, $query->errorInfo(), $query->errorCode());
 
-            }
 
         } catch (\PDOException $e) {
 
@@ -208,9 +207,8 @@ abstract class DBO {
                 $this->rowsAffected=$query->rowCount();
                 return $query;
             }
-            else {
+            else
                 throw new DBWriteException("Data write was failed", 500, $query->errorInfo(), $query->errorCode());
-            }
 
         } catch (\PDOException $e) {
 
