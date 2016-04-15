@@ -29,6 +29,13 @@ abstract class Kernel {
     /** @var string|null */
     protected static $processFilePath = null;
 
+    // Type of execution mode [0 => Router, 1 => Cli]
+    /** @var int */
+    protected static $executionType = 0;
+    // Type of output which program producing [0 => unbuffered, 1 => buffered]
+    /** @var int */
+    protected static $outputType = 0;
+
     // Routing related variables
     /** @var bool  */
     protected static $routerStarted = false;
@@ -107,13 +114,17 @@ abstract class Kernel {
             self::routeUser();
 
         }
+
         // Run processes defined in process.php
         else {
-            if(!defined("SYSTEM_PROCESS_ID")) define("SYSTEM_PROCESS_ID",null);
+            self::$executionType = 1;
+            if(!defined("SYSTEM_PROCESS_ID"))
+                define("SYSTEM_PROCESS_ID",null);
             if(!isset(self::$routeFilePath))
                 throw new \Exception("No process file provided for serving local program executable",500);
             require(self::$processFilePath);
         }
+
         // Let process be finished
         if(session_status() === PHP_SESSION_ACTIVE){
             session_write_close();
@@ -454,6 +465,8 @@ abstract class Kernel {
 
         // Put all data to output buffer for avoid any output except fired by Response->send();
         ob_start();
+        // Set flag that output is buffered
+        self::$outputType = 1;
 
         // ------------------------------------------------------------------------------------
         // Start routing through Middleware if it's exists for this route

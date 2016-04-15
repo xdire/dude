@@ -118,6 +118,30 @@ final class App extends Kernel {
         header('Location: '.$route);
     }
 
+    /**
+     * Return type of execution
+     *
+     * 0 - for router execution process
+     * 1 - for cli execution process
+     *
+     * @return int
+     */
+    final public static function getExecutionType() {
+        return self::$executionType;
+    }
+
+    /**
+     * Return type of output
+     *
+     * 0 - for unbuffered
+     * 1 - for buffered output
+     *
+     * @return int
+     */
+    final public static function getOutputType() {
+        return self::$outputType;
+    }
+
     public static function disableRouter() {
         self::$routerEnabled = false;
     }

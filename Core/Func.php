@@ -9,9 +9,12 @@ set_error_handler("__eeh");
 function __eeh($code, $msg, $file, $line ) {
 
     if(\Xdire\Dude\Core\App::getEnvironment() == 1) {
+
         echo "Error produced by application: \n";
         echo "Code: $code \nMessage: $msg \nFile: $file \nLine: $line";
-        ob_flush();
+
+        if(\Xdire\Dude\Core\App::getOutputType() == 1)
+            ob_flush();
     }
 
     throw new ErrorException($msg, $code, 0, $file, $line);
@@ -19,9 +22,14 @@ function __eeh($code, $msg, $file, $line ) {
 /** Shutdown Fatal Error Function */
 register_shutdown_function('__sdn');
 function __sdn() {
+
+    $isBuffered = \Xdire\Dude\Core\App::getOutputType();
+
     if($error = error_get_last()) {
 
+        if($isBuffered == 1)
         ob_clean();
+
         header("HTTP/1.0 500");
 
         if(\Xdire\Dude\Core\App::getEnvironment() == 1) {
@@ -33,9 +41,12 @@ function __sdn() {
             echo '{"errorCode":500,"errorMessage":"Error happened, be calm, send us a report and we\'ll fix it. ('.$fileName.':'.$error['line'].') "}';
         }
 
-        ob_flush();
+        if($isBuffered == 1)
+            ob_flush();
     }
-    ob_end_clean();
+
+    if($isBuffered== 1)
+        ob_end_clean();
 }
 // ---------------------------------------------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------------------------------------------
@@ -151,7 +162,7 @@ function getview($view,$data=null){
         try {
             $viewData=$data;
             require($path);
-        } catch (Exception $e){
+        } catch (Exception $e) {
             echo 'View cannot be loaded';
         }
 
