@@ -20,32 +20,43 @@ class DB extends DBO
     /**
      * @param null $statement
      * @param null $params
+     * @param bool $checkType
      * @return bool
+     * @throws DBDuplicationException
+     * @throws DBWriteException
      */
-    public function insert($statement=null,$params=null) {
+    public function insert($statement=null, $params=null, $checkType = true) {
 
-        return $this->insertExec($statement,$params);
+        return $this->insertExec($statement, $params, $checkType);
 
     }
+
     /**
      * @param null $statement
      * @param null $params
+     * @param bool $checkType
      * @return bool
+     * @throws DBDuplicationException
+     * @throws DBWriteException
      */
-    public function update($statement=null,$params=null) {
+    public function update($statement=null, $params=null, $checkType = true) {
 
-        return $this->insertExec($statement,$params);
+        return $this->insertExec($statement, $params, $checkType);
 
     }
+
     /**
      * @param null $statement
      * @param null $params
+     * @param bool $checkType
      * @return bool
+     * @throws DBDuplicationException
+     * @throws DBWriteException
      */
-    public function delete($statement=null,$params=null) {
+    public function delete($statement=null, $params=null, $checkType = true) {
 
-        $result=$this->insertExec($statement,$params);
-        return ($result && $this->rowsAffected>0) ? true:false;
+        $result = $this->insertExec($statement, $params, $checkType);
+        return $result && $this->rowsAffected > 0;
 
     }
     /* -------------------------------------------------------------------------------------------------------
@@ -167,10 +178,12 @@ class DB extends DBO
     /**
      * @param $statement
      * @param $params
+     * @param bool $checkType
      * @return bool
-     * @throws DBException
+     * @throws DBDuplicationException
+     * @throws DBWriteException
      */
-    private function insertExec($statement,$params) {
+    private function insertExec($statement, $params, $checkType = true) {
 
         try {
 
@@ -181,7 +194,14 @@ class DB extends DBO
             if (isset($params) && isset($params[0])) {
 
                 foreach($params as $p) {
-                    $result = $query->execute($p);
+                    if ($checkType) {
+                        foreach ($p as $k => $v) {
+                            $query->bindValue($k, $v, is_int($v) ? \PDO::PARAM_INT : \PDO::PARAM_STR);
+                        }
+                        $result = $query->execute();
+                    } else {
+                        $result = $query->execute($p);
+                    }
                 }
 
             } else {
