@@ -58,61 +58,57 @@ class Request
 
             foreach ($_SERVER as $name => $value)
             {
+                if (strpos($name, 'HTTP_') === 0) {
+                    $name = strtolower(str_replace('_', '-', substr($name, 5)));
 
-                if (strpos($name,'HTTP_') !== false) {
-
-                    if($name == "HTTP_AUTHKEY") {
+                    if($name === 'authkey') {
                         $this->authKey = $value;
-                    } elseif ($name == "HTTP_AUTHUSER") {
+                    } elseif ($name === 'authuser') {
                         $this->authUser = $value;
-                    } elseif ($name == "HTTP_AUTHAGENT") {
+                    } elseif ($name === 'authagent') {
                         $this->authAgent = $value;
-                    } elseif ($name == "HTTP_USERAGENTVER") {
+                    } elseif ($name === 'useragentver') {
                         $this->apiVer = $value;
                     }
                     else {
-                        $name = str_replace(' ', '-', strtolower(str_replace('_', ' ', substr($name, 5))));
                         $this->headers[$name] = $value;
                     }
-
                 }
-                elseif($name == "CONTENT_LENGTH"){
-                    $this->contentLength = intval($value);
-                    $this->headers["content-length"] = $value;
+                elseif($name === 'CONTENT_LENGTH') {
+                    $this->contentLength = (int) $value;
+                    $this->headers['content-length'] = $value;
                 }
-                elseif($name == "CONTENT_TYPE"){
+                elseif($name === 'CONTENT_TYPE') {
                     $this->contentType = $value;
-                    $this->headers["content-type"] = $value;
+                    $this->headers['content-type'] = $value;
                 }
-
             }
 
         }
         // Standard for Apache Web server
         else
         {
-
             if($this->headers = getallheaders()) {
-                $a = [];
+                $lcHeaders = [];
                 foreach($this->headers as $name=>$value) {
-                    if($name == "AuthKey") {
+                    $name = strtolower($name);
+                    if ($name === 'authkey') {
                         $this->authKey = $value;
-                    } elseif ($name == "AuthUser") {
+                    } elseif ($name === 'authuser') {
                         $this->authUser = $value;
-                    } elseif ($name == "AuthAgent") {
+                    } elseif ($name === 'authagent') {
                         $this->authAgent = $value;
-                    } elseif ($name == "UserAgentVer") {
+                    } elseif ($name === 'useragentver') {
                         $this->apiVer = $value;
-                    } elseif ($name == "Content-Length"){
-                        $this->contentLength = intval($value);
-                    } elseif ($name == "Content-Type"){
+                    } elseif ($name === 'content-length'){
+                        $this->contentLength = (int) $value;
+                    } elseif ($name === 'content-type'){
                         $this->contentType = $value;
                     }
-                    $a[strtolower($name)] = $value;
+                    $lcHeaders[$name] = $value;
                 }
-                $this->headers = $a;
+                $this->headers = $lcHeaders;
             }
-
         }
 
         if(isset($_SERVER['REMOTE_ADDR'])) {
