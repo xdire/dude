@@ -2,6 +2,7 @@
 
 use Xdire\Dude\Core\Face\Controller;
 use Xdire\Dude\Core\Face\Middleware;
+use Xdire\Dude\Core\Face\OptionsMiddleware;
 use Xdire\Dude\Core\Face\RoutingController;
 use Xdire\Dude\Core\Server\Request;
 use Xdire\Dude\Core\Server\Response;
@@ -100,17 +101,21 @@ final class App extends Kernel {
      * - callback which will be executed after the route will fetch for
      * current request. Callable function.
      * ----------------------------------
-     * @param Middleware|null $middleware
+     * @param Middleware | null $middleware
      * - middleware function, implementing the Middleware Interface
+     *
+     * @param OptionsMiddleware | null $optionMiddleware
+     * - If request came with OPTION header execute this middleware function, implements the Middleware Interface
      *
      * Will be executed on before the Request reach the callback
      * Can finish the request immediately with $response->end();
      *
      * @throws \Exception
      */
-    final public static function route($method,$route,$callback=null,Middleware $middleware=null) {
+    final public static function route(
+        $method, $route, $callback=null, Middleware $middleware=null, OptionsMiddleware $optionMiddleware = null) {
 
-        self::routeCreatePath($method,$route,$callback,$middleware);
+        self::routeCreatePath($method, $route, $callback, $middleware, $optionMiddleware);
 
     }
 
@@ -129,7 +134,6 @@ final class App extends Kernel {
     final public static function getExecutionType() {
         return self::$executionType;
     }
-
     /**
      * Return type of output
      *
@@ -141,7 +145,7 @@ final class App extends Kernel {
     final public static function getOutputType() {
         return self::$outputType;
     }
-
+    
     public static function disableRouter() {
         self::$routerEnabled = false;
     }

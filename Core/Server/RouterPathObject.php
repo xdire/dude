@@ -1,6 +1,7 @@
 <?php namespace Xdire\Dude\Core\Server;
 
 use Xdire\Dude\Core\Face\Middleware;
+use Xdire\Dude\Core\Face\OptionsMiddleware;
 
 /**
  * Router path object.
@@ -15,14 +16,11 @@ class RouterPathObject
     // ALL
     // GET
     // POST etc
-    /** @var null|\SplFixedArray  */
+    /** @var null | \SplFixedArray  */
     public $attachedEvents = null;
     /** @var bool  */
     public $isVirtual = false;
-    ///** @var int  */
-    //public $attachedEventsAmount = 0;
-
-    /** @var null|\SplFixedArray  */
+    /** @var null | \SplFixedArray  */
     public $extensions = null;
     /** @var RouterPathObject | null */
     public $virtualExtInt = null;
@@ -38,11 +36,13 @@ class RouterPathObject
     private $aNamesAmount = 0;
     /** @var bool */
     private $secured = false;
-    /** @var null|Middleware */
+    /** @var null | Middleware */
     private $middleware = null;
+    /** @var null | OptionsMiddleware */
+    public $attachedOptEvent = null;
 
     function __construct() {
-        $this->attachedEvents = new \SplFixedArray(6);
+        $this->attachedEvents = new \SplFixedArray(8);
         $this->extensions = new \SplFixedArray($this->extLen);
     }
 
@@ -160,12 +160,20 @@ class RouterPathObject
         return $this->aNamesAmount;
     }
 
-    /** * @return Middleware|null */
-    public function getMiddleware(){
-        if(isset($this->middleware)){
+    /** * @return Middleware | null */
+    public function getMiddleware() {
+        if(isset($this->middleware)) {
             return $this->middleware;
         }
         return null;
+    }
+
+    /**
+     * @return OptionsMiddleware | null
+     */
+    public function getAttachedOptEvent()
+    {
+        return $this->attachedOptEvent;
     }
 
     public function __setAsSecured(){
@@ -179,5 +187,12 @@ class RouterPathObject
         $this->middleware = $m;
     }
 
+    /**
+     * @param null | OptionsMiddleware $attachedOptEvent
+     */
+    public function __setAttachedOptEvent(OptionsMiddleware $attachedOptEvent)
+    {
+        $this->attachedOptEvent = $attachedOptEvent;
+    }
 
 }

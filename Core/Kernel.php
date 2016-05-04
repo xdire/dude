@@ -1,6 +1,7 @@
 <?php namespace Xdire\Dude\Core;
 
 use Xdire\Dude\Core\Face\Middleware;
+use Xdire\Dude\Core\Face\OptionsMiddleware;
 use Xdire\Dude\Core\Server\Request;
 use Xdire\Dude\Core\Server\Response;
 use Xdire\Dude\Core\Server\RouterPathHolder;
@@ -58,12 +59,13 @@ abstract class Kernel {
 
     // Incoming request method translation to integer
     private static $requestMethods = array(
-        'POST'=>2,'post'=>2,
-        'GET'=>1,'get'=>1,
-        'UPDATE'=>3,'update'=>3,
-        'PATCH'=>3,'patch'=>3,
-        'PUT'=>5,'put'=>5,
-        'DELETE'=>4,'delete'=>4
+        'POST' => 2,'post' => 2,
+        'GET' => 1,'get' => 1,
+        'UPDATE' => 3,'update' => 3,
+        'PATCH' => 3,'patch' => 3,
+        'PUT' => 5,'put' => 5,
+        'DELETE' => 4,'delete' => 4,
+        'OPTIONS' => 6,'options' => 6
     );
 
     private function __construct(){}
@@ -114,7 +116,6 @@ abstract class Kernel {
             self::routeUser();
 
         }
-
         // Run processes defined in process.php
         else {
             self::$executionType = 1;
@@ -124,7 +125,6 @@ abstract class Kernel {
                 throw new \Exception("No process file provided for serving local program executable",500);
             require(self::$processFilePath);
         }
-
         // Let process be finished
         if(session_status() === PHP_SESSION_ACTIVE){
             session_write_close();
@@ -212,9 +212,11 @@ abstract class Kernel {
      *  @param string $path
      *  @param null | callable $callback
      *  @param Middleware $middleware
+     *  @param OptionsMiddleware $optMiddleware
      *
      */
-    protected static final function routeCreatePath($method, $path, callable $callback=null, Middleware $middleware = null) {
+    protected static final function routeCreatePath(
+        $method, $path, callable $callback=null, Middleware $middleware = null, OptionsMiddleware $optMiddleware = null) {
 
         if(strlen($path) > 1) {
 
@@ -347,8 +349,11 @@ abstract class Kernel {
                 if($i == $pathesNum) {
 
                     $rph->getCurrent()->routeObject->__addEvent($method, $callback);
+
                     if ($middleware !== null)
                         $rph->getCurrent()->routeObject->__setMiddleware($middleware);
+                    if (isset($optMiddleware))
+                        $rph->getCurrent()->routeObject->__setAttachedOptEvent($optMiddleware);
 
                 }
 
@@ -363,8 +368,13 @@ abstract class Kernel {
                 $currentRPO = &self::$routingPathObjects[$currentRout];
 
                 $currentRPO->__addEvent($method, $callback);
+
+                // Add Middleware to Root Path
                 if($middleware !== null)
                     $currentRPO->__setMiddleware($middleware);
+                // Add Options Middleware to Root Path
+                if (isset($optMiddleware))
+                    $currentRPO->__setAttachedOptEvent($optMiddleware);
 
             }
 
@@ -478,18 +488,37 @@ abstract class Kernel {
 
             try {
 
+                // Run Specific REST Method if Attached to PATH
                 if($func = $route->getEventForEventType(self::$routerMethod)) {
+
                     $middleware->start(self::$requestObject,$response,$func);
-                } elseif ($func = $route->getEventForEventType(0)) {
+
+                }
+                // Run ROUTE_ALL event if Attached to PATH
+                elseif ($func = $route->getEventForEventType(0)) {
+
                     $middleware->start(self::$requestObject,$response,$func);
-                } else {
+
+                }
+                // Run OPTIONS request Middleware if any attached
+                elseif (self::$routerMethod == 6) {
+
+                    if($omw = $route->getAttachedOptEvent()) {
+                        $omw->start(self::$requestObject,$response);
+                    }
+
+                }
+                // Make Error NOT FOUND if nothing matched
+                else {
                     self::doRouteError(404);
                 }
 
             } catch (\Exception $e) {
+
                 self::doRouteError($e->getCode(), $e->getMessage());
                 ob_clean();
                 return;
+
             }
 
         }
@@ -520,7 +549,15 @@ abstract class Kernel {
                     self::doRouteError($e->getCode(), $e->getMessage());
                 }
 
-            } // Produce error if no methods found
+            }
+            elseif (self::$routerMethod == 6) {
+
+                if($omw = $route->getAttachedOptEvent()) {
+                    $omw->start(self::$requestObject, $response);
+                }
+
+            }
+            // Produce error if no methods found
             else {
                 self::doRouteError(404);
             }

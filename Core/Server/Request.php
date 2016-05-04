@@ -1,11 +1,4 @@
-<?php
-/**
- * Created by Anton Repin.
- * Date: 2/15/16
- * Time: 11:50 AM
- */
-
-namespace Xdire\Dude\Core\Server;
+<?php namespace Xdire\Dude\Core\Server;
 
 use Xdire\Dude\Core\User\User;
 
@@ -52,63 +45,42 @@ class Request
 
     private function _setup() {
 
-        // Polyfill function in nginx case
-        if (!function_exists('getallheaders'))
+        // Headers parse function
+        foreach ($_SERVER as $name => $value)
         {
 
-            foreach ($_SERVER as $name => $value)
-            {
-                if (strpos($name, 'HTTP_') === 0) {
-                    $name = strtolower(str_replace('_', '-', substr($name, 5)));
+            if (strpos($name, 'HTTP_') === 0) {
 
-                    if($name === 'authkey') {
-                        $this->authKey = $value;
-                    } elseif ($name === 'authuser') {
-                        $this->authUser = $value;
-                    } elseif ($name === 'authagent') {
-                        $this->authAgent = $value;
-                    } elseif ($name === 'useragentver') {
-                        $this->apiVer = $value;
-                    }
-                    else {
-                        $this->headers[$name] = $value;
-                    }
+                // Drop the HTTP_ word from header and swap
+                // underscores with dashes (spaces are not allowed
+                // header character)
+                $name = str_replace('_', '-', substr($name, 5));
+
+                if($name == 'AUTHKEY') {
+                    $this->authKey = $value;
+                } elseif ($name == 'AUTHUSER') {
+                    $this->authUser = $value;
+                } elseif ($name == 'AUTHAGENT') {
+                    $this->authAgent = $value;
+                } elseif ($name == 'USERAGENTVER') {
+                    $this->apiVer = $value;
                 }
-                elseif($name === 'CONTENT_LENGTH') {
-                    $this->contentLength = (int) $value;
-                    $this->headers['content-length'] = $value;
+                else {
+                    // Set string to lowercase for all headers which
+                    // are not standard object for Framework
+                    $this->headers[strtolower($name)] = $value;
                 }
-                elseif($name === 'CONTENT_TYPE') {
-                    $this->contentType = $value;
-                    $this->headers['content-type'] = $value;
-                }
+
+            }
+            elseif($name == 'CONTENT_LENGTH') {
+                $this->contentLength = (int) $value;
+                $this->headers['content-length'] = $value;
+            }
+            elseif($name == 'CONTENT_TYPE') {
+                $this->contentType = $value;
+                $this->headers['content-type'] = $value;
             }
 
-        }
-        // Standard for Apache Web server
-        else
-        {
-            if($this->headers = getallheaders()) {
-                $lcHeaders = [];
-                foreach($this->headers as $name=>$value) {
-                    $name = strtolower($name);
-                    if ($name === 'authkey') {
-                        $this->authKey = $value;
-                    } elseif ($name === 'authuser') {
-                        $this->authUser = $value;
-                    } elseif ($name === 'authagent') {
-                        $this->authAgent = $value;
-                    } elseif ($name === 'useragentver') {
-                        $this->apiVer = $value;
-                    } elseif ($name === 'content-length'){
-                        $this->contentLength = (int) $value;
-                    } elseif ($name === 'content-type'){
-                        $this->contentType = $value;
-                    }
-                    $lcHeaders[$name] = $value;
-                }
-                $this->headers = $lcHeaders;
-            }
         }
 
         if(isset($_SERVER['REMOTE_ADDR'])) {

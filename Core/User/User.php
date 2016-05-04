@@ -50,7 +50,14 @@ class User
      * @return array
      */
     public function toArray() {
-        return ["id"=>$this->id,"login"=>$this->loginName,"email"=>$this->email,"firstName"=>$this->firstName,"lastName"=>$this->lastName,"level"=>$this->level,"active"=>$this->active==0?false:true];
+        return ["id"=>$this->id,
+            "login"=>$this->loginName,
+            "email"=>$this->email,
+            "firstName"=>$this->firstName,
+            "lastName"=>$this->lastName,
+            "level"=>$this->level,
+            "active"=>$this->active==0?false:true
+        ];
     }
 
     /**

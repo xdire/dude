@@ -22,10 +22,6 @@ class Response
      * @var array
      */
     private $headers = [];
-    /**
-     * @var string
-     */
-    private $content = "";
 
     /**
      * Response constructor.
@@ -123,17 +119,18 @@ class Response
 
     /**
      * @param string $path
-     * @param mixed $text
      */
-    public function route($path,$text) {
+    public function route($path) {
         header('Location: '.$path);
     }
 
     private function sendSrvInfo(){
         if(!$this->codeSent) {
+
             http_response_code($this->code);
             $this->sendHeaders();
             $this->codeSent = true;
+
         }
     }
     private function sendHeaders(){
