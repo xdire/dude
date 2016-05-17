@@ -429,7 +429,8 @@ abstract class Kernel {
                 }
                 // If current route is definitely some variable parameter
                 else {
-
+                    
+                    if(!isset($routeRoot)) continue;
                     // Put Variable into Request Path Parameter with attached variable
                     if($name = $routeRoot->getAliasNameForCellNumber($aliasCounter)) {
 
