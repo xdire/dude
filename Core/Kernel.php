@@ -182,11 +182,9 @@ abstract class Kernel {
 
             if(strlen($curPiece) > 0){
 
-                $qstr=explode('?',$curPiece);
+                $resultRoute[] = $curPiece;
 
-                $resultRoute[$qstr[0]] = 1;
-
-                $pathLast = $qstr[0];
+                $pathLast = $curPiece;
                 $k++;
 
             }
@@ -194,7 +192,7 @@ abstract class Kernel {
         }
 
         if($k==0)
-            $resultRoute["/"] = 1;
+            $resultRoute[] = "/";
 
         self::$requestObject->__setPath($cleanedUri);
         self::$requestObject->__setPathLastElement($pathLast);
@@ -394,7 +392,7 @@ abstract class Kernel {
             $routeRoot = null;
             $aliasCounter = 0;
 
-            foreach (self::$routerPath as $path => $v) {
+            foreach (self::$routerPath as $path) {
 
                 // If current route path is in dictionary of exact routes
                 if(isset(self::$routingDictionary[$path])) {
@@ -429,7 +427,7 @@ abstract class Kernel {
                 }
                 // If current route is definitely some variable parameter
                 else {
-                    
+
                     if(!isset($routeRoot)) continue;
                     // Put Variable into Request Path Parameter with attached variable
                     if($name = $routeRoot->getAliasNameForCellNumber($aliasCounter)) {
